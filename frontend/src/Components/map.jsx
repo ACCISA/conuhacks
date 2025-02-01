@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { GoogleMap, LoadScript, Polygon } from '@react-google-maps/api';
 
 const containerStyle = {
@@ -12,20 +12,18 @@ const center = {
 };
 
 
-const fires = [
+const initialFires = [
   [
     { lat: 45.48, lng: -73.51 },
     { lat: 45.47, lng: -73.52 },
     { lat: 45.46, lng: -73.50 },
     { lat: 45.47, lng: -73.49 },
-    { lat: 45.57, lng: -73.39 },
   ],
   [
     { lat: 45.55, lng: -73.58 },
     { lat: 45.54, lng: -73.60 },
     { lat: 45.53, lng: -73.59 },
     { lat: 45.54, lng: -73.57 },
-    { lat: 45.44, lng: -73.67 },
   ],
   [
     { lat: 45.50, lng: -73.55 },
@@ -43,8 +41,27 @@ const polygonOptions = {
   strokeWeight: 2,
 };
 
-const MapWithMultipleFires = () => {
+// Growth Factor (adjust for faster/slower growth)
+const GROWTH_RATE = 0.0005; // Latitude/Longitude expansion per second
+
+const Map = () => {
+  const [fires, setFires] = useState(initialFires);
   const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFires(prevFires =>
+        prevFires.map(fire =>
+          fire.map(point => ({
+            lat: point.lat + (Math.random() > 0.5 ? GROWTH_RATE : -GROWTH_RATE),
+            lng: point.lng + (Math.random() > 0.5 ? GROWTH_RATE : -GROWTH_RATE),
+          }))
+        )
+      );
+    }, 1000); 
+
+    return () => clearInterval(interval); 
+  }, []);
 
   return (
     <LoadScript googleMapsApiKey={apiKey}>
@@ -57,4 +74,4 @@ const MapWithMultipleFires = () => {
   );
 };
 
-export default MapWithMultipleFires;
+export default Map;
