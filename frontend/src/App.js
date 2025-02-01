@@ -9,6 +9,15 @@ export default function App() {
         <button className="px-6 py-2 bg-blue-500 text-white rounded-xl shadow-md hover:bg-blue-600 transition-transform transform hover:scale-105">
           Get Started
         </button>
+        <iframe 
+          title='Streamlit Embed'
+          src='http://localhost:8501?embed=true&component=csv_processing'
+          style={{
+            border: 'none',
+            width: '100%',
+            height: '100%'
+          }}
+        />
       </div>
     </div>
   );
