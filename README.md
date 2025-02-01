@@ -1,2 +1,0 @@
-# conuhacks
-2025
