@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from "react";
-import {
-  GoogleMap,
-  LoadScript,
-  Polygon,
-  OverlayView,
-} from "@react-google-maps/api";
+import { GoogleMap, LoadScript, Polygon } from "@react-google-maps/api";
+import FireAlert from "./FireAlert";
+import ResourceCard from "./ResourceCard";
+import FireDetailsOverlay from "./FireDetailsOverlay";
 
 const containerStyle = {
   width: "100%",
@@ -53,13 +51,6 @@ const polygonOptions = {
   strokeWeight: 2,
 };
 
-const getStatusColor = (available, total) => {
-  const usageRate = available / total;
-  if (usageRate > 0.6) return "green";
-  if (usageRate > 0.3) return "yellow";
-  return "red";
-};
-
 const MapWithFiresAndStations = () => {
   const [activeInfoWindow, setActiveInfoWindow] = useState(null);
   const [map, setMap] = useState(null);
@@ -71,15 +62,12 @@ const MapWithFiresAndStations = () => {
     const timer = setInterval(() => {
       setSimulatedDays((prevDays) => prevDays + 3.04);
     }, 1000);
-
     return () => clearInterval(timer);
   }, []);
 
   const calculateCentroid = (polygon) => {
-    const lat =
-      polygon.reduce((sum, point) => sum + point.lat, 0) / polygon.length;
-    const lng =
-      polygon.reduce((sum, point) => sum + point.lng, 0) / polygon.length;
+    const lat = polygon.reduce((sum, point) => sum + point.lat, 0) / polygon.length;
+    const lng = polygon.reduce((sum, point) => sum + point.lng, 0) / polygon.length;
     return { lat, lng };
   };
 
@@ -101,63 +89,16 @@ const MapWithFiresAndStations = () => {
       <div style={{ position: "relative" }}>
         <div style={{ position: "absolute", top: 10, right: 10, zIndex: 1000 }}>
           {initialFires.map((fire, index) => (
-            <div
-              key={index}
-              style={{
-                backgroundColor: "red",
-                color: "white",
-                padding: "5px",
-                margin: "5px",
-                borderRadius: "5px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                height: "40px",
-              }}
-              onClick={() => handleAlertClick(index)}
-            >
-              <span style={{ marginRight: "8px" }}>⚠️</span>
-              New Fire Alert #{index + 1} ({fire.severity})
-            </div>
+            <FireAlert key={index} fire={fire} index={index} onClick={() => handleAlertClick(index)} />
           ))}
         </div>
 
         <div style={{ position: "absolute", top: 10, left: 10, zIndex: 1000 }}>
-          {resources.map((resource, resIndex) => (
-            <div
-              key={resIndex}
-              style={{
-                backgroundColor: "#333",
-                color: "white",
-                padding: "10px",
-                marginBottom: "5px",
-                borderRadius: "5px",
-                width: "320px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                height: "40px",
-              }}
-            >
-              <strong>{resource.name}</strong>
-              <div style={{ display: "flex", gap: "10px" }}>
-                <span>Total: {resource.total}</span>
-                <span>In Use: {resource.inUse}</span>
-              </div>
-              <div
-                style={{
-                  backgroundColor: getStatusColor(
-                    resource.total - resource.inUse,
-                    resource.total
-                  ),
-                  width: "15px",
-                  height: "15px",
-                  borderRadius: "50%",
-                  marginLeft: "5px",
-                }}
-              ></div>
-            </div>
-          ))}
+          {(activeInfoWindow !== null ? filteredResources(initialFires[activeInfoWindow].severity) : resources).map(
+            (resource, resIndex) => (
+              <ResourceCard key={resIndex} resource={resource} />
+            )
+          )}
         </div>
 
         <GoogleMap
@@ -169,52 +110,17 @@ const MapWithFiresAndStations = () => {
         >
           {initialFires.map((fire, index) => (
             <React.Fragment key={index}>
-              <Polygon paths={fire.coordinates} options={polygonOptions} />
+              <Polygon
+                paths={fire.coordinates}
+                options={polygonOptions}
+                onClick={() => handleAlertClick(index)}
+              />
               {activeInfoWindow === index && (
-                <OverlayView
-                  position={calculateCentroid(fire.coordinates)}
-                  mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-                >
-                  <div
-                    style={{
-                      backgroundColor: "red",
-                      padding: "5px",
-                      borderRadius: "8px",
-                      boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-                      minWidth: "180px",
-                      maxWidth: "220px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        backgroundColor: "red",
-                        padding: "5px",
-                        borderRadius: "5px",
-                      }}
-                    >
-                      <strong style={{ color: "white" }}>Fire Details</strong>
-                      <button
-                        style={{
-                          background: "transparent",
-                          color: "white",
-                          border: "none",
-                          fontWeight: "bold",
-                          cursor: "pointer",
-                        }}
-                        onClick={() => setActiveInfoWindow(null)}
-                      >
-                        X
-                      </button>
-                    </div>
-                    <div style={{ padding: "5px" }}>
-                      <p>Location: Zone {index + 1}</p>
-                      <p>Severity: {fire.severity}</p>
-                    </div>
-                  </div>
-                </OverlayView>
+                <FireDetailsOverlay
+                  fire={fire}
+                  onClose={() => setActiveInfoWindow(null)}
+                  centroid={calculateCentroid(fire.coordinates)}
+                />
               )}
             </React.Fragment>
           ))}
