@@ -58,7 +58,16 @@ const getStatusColor = (available, total) => {
 const MapWithFiresAndStations = () => {
   const [activeInfoWindow, setActiveInfoWindow] = useState(null);
   const [map, setMap] = useState(null);
+  const [simulatedTime, setSimulatedTime] = useState(0);
   const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSimulatedTime((prevTime) => prevTime + 1);
+    }, 100); // Accelerated time
+
+    return () => clearInterval(timer);
+  }, []);
 
   const calculateCentroid = (polygon) => {
     const lat = polygon.reduce((sum, point) => sum + point.lat, 0) / polygon.length;
@@ -102,8 +111,7 @@ const MapWithFiresAndStations = () => {
                 width: '300px',
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'center',
-                
+                alignItems: 'center'
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
@@ -128,6 +136,7 @@ const MapWithFiresAndStations = () => {
           mapContainerStyle={containerStyle}
           center={center}
           zoom={12}
+          mapTypeId="satellite"
           onLoad={(map) => setMap(map)}
         >
           {initialFires.map((fire, index) => (
@@ -153,6 +162,10 @@ const MapWithFiresAndStations = () => {
             </React.Fragment>
           ))}
         </GoogleMap>
+
+        <div style={{ backgroundColor: '#333', color: 'white', padding: '10px', textAlign: 'center' }}>
+          Simulated Time: {simulatedTime} seconds
+        </div>
       </div>
     </LoadScript>
   );
