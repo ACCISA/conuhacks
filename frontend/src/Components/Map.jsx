@@ -6,7 +6,7 @@ import FireDetailsOverlay from "./FireDetailsOverlay";
 
 const containerStyle = {
   width: "100%",
-  height: "600px",
+  height: "630px",
 };
 
 const center = {
