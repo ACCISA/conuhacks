@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MapWithMultipleFires from './Map';
 
 const Dashboard = () => {
@@ -25,6 +25,12 @@ const Dashboard = () => {
   const handleMetricChange = (id, newValue) => {
     setMetrics(metrics.map(metric => metric.id === id ? { ...metric, value: newValue } : metric));
   };
+
+  useEffect(() => {
+    if (activeTab !== 'csv') {
+      setSelectedFile(null);
+    }
+  }, [activeTab]);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-4">
