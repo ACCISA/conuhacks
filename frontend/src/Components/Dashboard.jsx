@@ -111,18 +111,14 @@ const Dashboard = () => {
 
       {activeTab === 'csv' && (
         <div className="bg-gray-800 p-4 rounded-xl shadow-xl">
-          <h2 className="text-xl font-semibold mb-4">CSV Uploads</h2>
-          <div className="flex flex-col items-start space-y-4">
-            <input
-              type="file"
-              accept=".csv"
-              onChange={handleFileChange}
-              className="text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 transition-all duration-200"
-            />
-            {selectedFile && (
-              <p className="text-gray-400">Selected File: {selectedFile.name}</p>
-            )}
-          </div>
+          <iframe 
+          src='http://localhost:8501?embed=true&component=csv_processing'
+          style={{
+            border: 'none',
+            width: '100%',
+            height: '100%'
+          }}
+        />
         </div>
       )}
 
