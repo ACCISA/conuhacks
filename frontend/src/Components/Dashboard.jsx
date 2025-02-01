@@ -63,18 +63,9 @@ const Dashboard = () => {
 
       {activeTab === 'dashboard' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="col-span-2 bg-gray-800 p-4 rounded-xl shadow-xl">
+          <div className="col-span-3 bg-gray-800 p-4 rounded-xl shadow-xl">
             <h2 className="text-xl font-semibold mb-2">Fire Incident Map</h2>
-            <MapWithMultipleFires />
-          </div>
-
-          <div className="bg-red-800 p-4 rounded-xl shadow-xl">
-            <h2 className="text-xl font-semibold mb-2">Live Fire Alerts</h2>
-            <ul className="space-y-2">
-              <li className="bg-red-600 p-3 rounded-lg shadow-md">Alert 1: Active fire at XYZ location</li>
-              <li className="bg-red-600 p-3 rounded-lg shadow-md">Alert 2: Fire spreading towards ABC area</li>
-              <li className="bg-red-600 p-3 rounded-lg shadow-md">Alert 3: Contained fire near DEF region</li>
-            </ul>
+            <MapWithMultipleFires showAlerts={true} />
           </div>
 
           <div className="bg-gray-800 p-4 rounded-xl shadow-xl lg:col-span-3">
@@ -110,15 +101,15 @@ const Dashboard = () => {
       )}
 
       {activeTab === 'csv' && (
-        <div className="bg-gray-800 p-4 rounded-xl shadow-xl">
+        <div className="bg-gray-800 rounded-xl shadow-xl min-h-screen">
           <iframe 
-          src='http://localhost:8501?embed=true&component=csv_processing'
-          style={{
-            border: 'none',
-            width: '100%',
-            height: '100%'
-          }}
-        />
+            src='http://localhost:8501?embed=true&component=csv_processing'
+            style={{
+              border: 'none',
+              width: '100%',
+              height: '100vh'
+            }}
+          />
         </div>
       )}
 
