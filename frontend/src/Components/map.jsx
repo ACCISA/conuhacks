@@ -11,7 +11,7 @@ const center = {
   lng: -73.5674,
 };
 
-// Array of fires, each with its own data points
+
 const fires = [
   [
     { lat: 45.48, lng: -73.51 },
