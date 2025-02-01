@@ -1,14 +1,15 @@
-# from fastapi import FastAPI
-
-# app = FastAPI()
-
-# @app.get("/")
-# def read_root():
-#     return {"Hello": "World"}
-
-# @app.get("/items/{item_id}")
-# def read_item(item_id: int, q: str = None):
-#     return {"item_id": item_id, "q": q}
+import streamlit as st
+import logging
+from csv_processing import csv_processing
 
 
+params = st.query_params
+
+pages = {
+    "csv_processing":csv_processing
+}
+
+logging.info("Executing: " + str(params.component))
+
+pages[params.component]()
 
