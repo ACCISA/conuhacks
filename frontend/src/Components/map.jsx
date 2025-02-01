@@ -7,19 +7,33 @@ const containerStyle = {
 };
 
 const center = {
-  lat: 37.7749,
-  lng: -122.4194,
+  lat: 45.5019,
+  lng: -73.5674,
 };
 
-
-const dataPoints = [
-  { lat: 37.78, lng: -122.41 },
-  { lat: 37.77, lng: -122.43 },
-  { lat: 37.76, lng: -122.42 },
-  { lat: 37.77, lng: -122.40 },
-  { lat: 38.77, lng: -122.40 },
+// Array of fires, each with its own data points
+const fires = [
+  [
+    { lat: 45.48, lng: -73.51 },
+    { lat: 45.47, lng: -73.52 },
+    { lat: 45.46, lng: -73.50 },
+    { lat: 45.47, lng: -73.49 },
+    { lat: 45.57, lng: -73.39 },
+  ],
+  [
+    { lat: 45.55, lng: -73.58 },
+    { lat: 45.54, lng: -73.60 },
+    { lat: 45.53, lng: -73.59 },
+    { lat: 45.54, lng: -73.57 },
+    { lat: 45.44, lng: -73.67 },
+  ],
+  [
+    { lat: 45.50, lng: -73.55 },
+    { lat: 45.49, lng: -73.56 },
+    { lat: 45.48, lng: -73.54 },
+    { lat: 45.49, lng: -73.53 },
+  ],
 ];
-
 
 const polygonOptions = {
   fillColor: 'red',
@@ -29,12 +43,18 @@ const polygonOptions = {
   strokeWeight: 2,
 };
 
-const MapWithPolygon = () => (
-  <LoadScript googleMapsApiKey="AIzaSyAohCmfIN5EjN-jBmkR8LmeDVZUrm4uDms">
-    <GoogleMap mapContainerStyle={containerStyle} center={center} zoom={13}>
-      <Polygon paths={dataPoints} options={polygonOptions} />
-    </GoogleMap>
-  </LoadScript>
-);
+const MapWithMultipleFires = () => {
+  const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
-export default MapWithPolygon;
+  return (
+    <LoadScript googleMapsApiKey={apiKey}>
+      <GoogleMap mapContainerStyle={containerStyle} center={center} zoom={12}>
+        {fires.map((fire, index) => (
+          <Polygon key={index} paths={fire} options={polygonOptions} />
+        ))}
+      </GoogleMap>
+    </LoadScript>
+  );
+};
+
+export default MapWithMultipleFires;
