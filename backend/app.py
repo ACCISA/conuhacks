@@ -2,6 +2,9 @@ import streamlit as st
 import logging
 import sys
 
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 sys.path.append('streamlit')
 
 from csv_processing import csv_processing

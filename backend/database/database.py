@@ -7,8 +7,8 @@ db = client["fire_management"]
 
 print(db)
 
-prev_fires = db['previous_fires_dataset']
 resources = db['resources']
+fires = db['fires']
 
 def helo():
     pass
