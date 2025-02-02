@@ -12,3 +12,6 @@ seaborn
 folium
 streamlit-folium
 uvicorn
+redis
+resources
+staty
