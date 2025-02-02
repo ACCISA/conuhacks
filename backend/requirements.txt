@@ -13,5 +13,4 @@ folium
 streamlit-folium
 uvicorn
 redis
-resources
 staty

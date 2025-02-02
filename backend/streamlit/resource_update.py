@@ -63,4 +63,3 @@ def resource_update_depl():
                                 on_change=lambda: update_value('smoke_jumpers','deployment_time'))
     ground_crews_cost = st.text_input("Ground Crews",key="gc",placeholder=resources['ground_crews']['deployment_time'],
                                 on_change=lambda: update_value('smoke_jumpers','deployment_time'))
-

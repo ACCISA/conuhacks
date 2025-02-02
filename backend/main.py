@@ -9,6 +9,7 @@ from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+
 # Load the trained model
 model = joblib.load("predict_model.pkl")
 
@@ -117,7 +118,10 @@ async def tasks_websocket(websocket: WebSocket):
 
     try:
         while True:
-            tasks = r.zrange(queue_key, 0, -1)  # Get all tasks in Redis
+            
+            tasks = r.lrange('main_queue', 0, -1)  # Get all tasks in Redis
+            r.delete('main_queue')
+            
             if tasks:
                 task_list = [json.loads(task) for task in tasks]  # Convert to JSON
                 logging.info(f"Sending Redis tasks: {task_list}")
