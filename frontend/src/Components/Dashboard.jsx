@@ -123,23 +123,46 @@ const Dashboard = () => {
       )}
 
       {activeTab === 'metrics' && (
-        <div className="bg-gray-800 p-4 rounded-xl shadow-xl">
-          <h2 className="text-xl font-semibold mb-2">Edit Metrics</h2>
-          <div className="space-y-4">
-            {metrics.map((metric) => (
-              <div key={metric.id} className="flex items-center justify-between bg-gray-700 p-3 rounded-md">
-                <span className="text-gray-300">{metric.name}</span>
-                <input
-                  type="text"
-                  value={metric.value}
-                  onChange={(e) => handleMetricChange(metric.id, e.target.value)}
-                  className="bg-gray-600 text-white p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            ))}
+        <div className="flex space-x-4">
+          <div className="bg-gray-800 p-4 rounded-xl shadow-xl w-1/2">
+            <div className="space-y-4">
+              <iframe 
+                src="http://localhost:8501?embed=true&component=resource_update_units" 
+                style={{
+                  border: 'none',
+                  width: '100%',
+                  height: '100vh'
+                }}
+              />
+            </div>          
+          </div>
+          <div className="bg-gray-800 p-4 rounded-xl shadow-xl w-1/2">
+            <div className="space-y-4">
+              <iframe 
+                src="http://localhost:8501?embed=true&component=resource_update_cost" 
+                style={{
+                  border: 'none',
+                  width: '100%',
+                  height: '100vh'
+                }}
+              />
+            </div>          
+          </div>
+          <div className="bg-gray-800 p-4 rounded-xl shadow-xl w-1/2">
+            <div className="space-y-4">
+              <iframe 
+                src="http://localhost:8501?embed=true&component=resource_update_depl" 
+                style={{
+                  border: 'none',
+                  width: '100%',
+                  height: '100vh'
+                }}
+              />
+            </div>          
           </div>
         </div>
       )}
+
     </div>
   );
 };
