@@ -7,7 +7,7 @@ import PastFireMap from './PastFireMap';
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [fireInfo, setfireInfo] = useState([]);
+  const [fireInfo, setFireInfo] = useState([]);
   const [socket, setSocket] = useState(null);
   const [fireData, setfireData] = useState([]);
 
@@ -22,20 +22,23 @@ const Dashboard = () => {
     { name: "Ground Crews", total: 8, inUse: 6, cost: 3000, severity: "Low" },
   ]);
 
+  // By default, all resources are shown
   const [filteredResources, setFilteredResources] = useState(resources);
+
+  // Example metrics (unchanged)
   const [metrics, setMetrics] = useState([
     { id: 1, name: 'Response Time', value: '5 mins' },
     { id: 2, name: 'Water Usage', value: '2000 L' },
     { id: 3, name: 'Personnel Deployed', value: '50' },
   ]);
 
-  // Decide color & status text based on usage ratio
+  // -------------------------------------
+  // Resource usage color & status
+  // -------------------------------------
   const getResourceStatus = (inUse, total) => {
     if (total === 0) {
-      // Edge case: if total is 0, just return something neutral
       return { status: 'N/A', colorClass: 'text-gray-400' };
     }
-
     const usage = inUse / total;
     if (usage === 0) {
       return { status: 'Free', colorClass: 'text-green-400' };
@@ -48,54 +51,78 @@ const Dashboard = () => {
     }
   };
 
-  // Keep severity-based filtering for the Map
+  // -------------------------------------
+  // Filter resources by severity
+  // -------------------------------------
   const handleFireClick = (severity) => {
-    // Filter resources by whether they include this severity
     setFilteredResources(resources.filter((res) => res.severity.includes(severity)));
   };
 
+  // -------------------------------------
+  // Reset resource filter
+  // -------------------------------------
   const handleClose = () => {
-    // When overlay is closed, show all resources again
     setFilteredResources(resources);
   };
 
+  // -------------------------------------
+  // Tab handling
+  // -------------------------------------
   const handleTabClick = (tab) => {
     if (tab === 'dashboard') {
+      // Force reload for demonstration
       window.location.reload();
     } else {
       setActiveTab(tab);
     }
   };
 
+  // -------------------------------------
+  // Example: handle metric changes
+  // -------------------------------------
   const handleMetricChange = (id, newValue) => {
     setMetrics((prev) =>
       prev.map((metric) => (metric.id === id ? { ...metric, value: newValue } : metric))
     );
   };
 
+  // -------------------------------------
+  // WebSocket to receive new fires
+  // -------------------------------------
   useEffect(() => {
     const taskSocket = new WebSocket("ws://localhost:5002/ws/tasks");
 
     taskSocket.onopen = () => {
       console.log("✅ Connected to WebSocket");
     };
-    
-  
+
     taskSocket.onmessage = (event) => {
       const taskData = JSON.parse(event.data);
+
       if (Array.isArray(taskData)) {
-        const fires = taskData.map(task => ({
-          fire_start_time: task.fire_start_time,
-          location: task.location,
-          severity: task.severity,
-        }));
-        setfireInfo(fires);
+        // If array of tasks
+        setFireInfo((prevFireInfo) => {
+          const newFires = taskData.map((task) => ({
+            fire_start_time: task.fire_start_time,
+            location: task.location,
+            severity: task.severity,
+            status:task.status,
+            priority: task.priority,
+            resources:task?.resources
+          }));
+          return [...prevFireInfo, ...newFires];
+        });
       } else {
-        
-        setfireInfo([{ location: taskData.location, fire_start_time: taskData.fire_start_time, severity: taskData.severity }]);
+        // Single new task
+        setFireInfo((prevFireInfo) => [
+          ...prevFireInfo,
+          {
+            fire_start_time: taskData.fire_start_time,
+            location: taskData.location,
+            severity: taskData.severity,
+          },
+        ]);
       }
-    
-      
     };
 
     taskSocket.onerror = (error) => {
@@ -108,15 +135,13 @@ const Dashboard = () => {
 
     setSocket(taskSocket);
 
-    // Cleanup function
     return () => {
       if (taskSocket.readyState === WebSocket.OPEN) {
         taskSocket.close();
       }
     };
-
   }, []);
-  
+
   const handleLocationClick = (fire) => {
     console.log("move map")
   }
@@ -127,8 +152,16 @@ const Dashboard = () => {
     if (serverity == 2) return "#FFA500";
     return "#FFFF00";
   };
+  // -------------------------------------
+  // Log whenever fireInfo changes
+  // -------------------------------------
+  useEffect(() => {
+    console.log("fireInfo updated:", fireInfo);
+  }, [fireInfo]);
 
-
+  // -------------------------------------
+  // Render
+  // -------------------------------------
   return (
     <div className="min-h-screen bg-gray-900 text-white p-4">
       {/* Tabs */}
@@ -148,6 +181,7 @@ const Dashboard = () => {
         ))}
       </div>
 
+      {/* Dashboard content */}
       {activeTab === 'dashboard' && (
         <div className="flex flex-col gap-4">
           <div className="flex flex-col lg:flex-row gap-4">
@@ -160,7 +194,6 @@ const Dashboard = () => {
 
                   return (
                     <div key={index} className="bg-gray-700 p-3 rounded-md shadow-md">
-                      {/* Usage-based color on the resource name */}
                       <h3 className={`text-lg font-semibold mb-1 ${colorClass}`}>
                         {resource.name}
                       </h3>
@@ -170,10 +203,8 @@ const Dashboard = () => {
                       </div>
                       <div className="flex justify-between text-sm">
                         <p>Cost: ${resource.cost}</p>
-                        {/* Show severity for filtering context */}
                         <p>Severity: {resource.severity}</p>
                       </div>
-                      {/* Show usage-based status in its color */}
                       <p className={`mt-1 text-sm font-semibold ${colorClass}`}>
                         Status: {status}
                       </p>
@@ -186,26 +217,39 @@ const Dashboard = () => {
             {/* Right Panel: Fire Incident Map */}
             <div className="lg:w-4/5 bg-gray-800 p-4 rounded-xl shadow-xl">
               <h2 className="text-xl font-semibold mb-2">Fire Incident Map</h2>
-              {/* Pass handleFireClick so we still filter by the clicked severity */}
-              <MapWithMultipleFires onFireClick={handleFireClick} onClose={handleClose} fireInfo={fireInfo}/>
+              <MapWithMultipleFires
+                onFireClick={handleFireClick}
+                onClose={handleClose}
+                fireInfo={fireInfo}
+              />
             </div>
           </div>
 
           {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <PieChart fireInfo={fireInfo}/>
-            <LineGraph fireInfo={fireInfo}/>
+            <PieChart fireInfo={fireInfo} />
+            <LineGraph fireInfo={fireInfo} />
           </div>
         </div>
       )}
 
+      {/* CSV Tab */}
       {activeTab === 'csv' && (
-        <div className="bg-gray-800 rounded-xl shadow-xl min-h-screen">
-          <iframe
-            src='http://localhost:8501?embed=true&component=csv_processing'
-            style={{ border: 'none', width: '100%', height: '100vh' }}
-          />
+        <div className='flex row w-full justify-around'>
+          <div className="bg-gray-800 w-full rounded-xl shadow-xl min-h-screen m-2">
+            <iframe
+              src='http://localhost:8501?embed=true&component=csv_processing'
+              style={{ border: 'none', width: '100%', height: '100vh' }}
+            />
+          </div>
+          <div className="bg-gray-800 w-full rounded-xl shadow-xl min-h-screen m-2">
+            <iframe
+              src='http://localhost:8501?embed=true&component=csv_processing_prediction'
+              style={{ border: 'none', width: '100%', height: '100vh' }}
+            />
+          </div>
         </div>
+        
       )}
 
 {activeTab === 'analytics' && (
@@ -348,6 +392,7 @@ const Dashboard = () => {
         </div>
       )}
 
+      {/* Prediction Tab */}
       {activeTab === 'prediction' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="col-span-3 bg-gray-800 p-4 rounded-xl shadow-xl">

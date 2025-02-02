@@ -1,6 +1,11 @@
 import redis
 import json
 import logging
+import sys
+
+sys.path.append("database")
+
+from fires_db import log_fire_processing
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -20,6 +25,7 @@ def remove_fire_by_id(task_id):
         item_data = json.loads(item)
         if item_data.get('task_id') == task_id:
             redis_client.lrem(queue_name, 0, item)  # Remove the item
+            log_fire_processing(item_data)
             logging.info(f"Main({item_data})")
             break
 
