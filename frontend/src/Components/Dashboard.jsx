@@ -198,12 +198,21 @@ const Dashboard = () => {
       )}
 
       {activeTab === 'csv' && (
-        <div className="bg-gray-800 rounded-xl shadow-xl min-h-screen">
-          <iframe
-            src='http://localhost:8501?embed=true&component=csv_processing'
-            style={{ border: 'none', width: '100%', height: '100vh' }}
-          />
+        <div className='flex row w-full justify-around'>
+          <div className="bg-gray-800 w-full rounded-xl shadow-xl min-h-screen m-2">
+            <iframe
+              src='http://localhost:8501?embed=true&component=csv_processing'
+              style={{ border: 'none', width: '100%', height: '100vh' }}
+            />
+          </div>
+          <div className="bg-gray-800 w-full rounded-xl shadow-xl min-h-screen m-2">
+            <iframe
+              src='http://localhost:8501?embed=true&component=csv_processing_prediction'
+              style={{ border: 'none', width: '100%', height: '100vh' }}
+            />
+          </div>
         </div>
+        
       )}
 
       {activeTab === 'analytics' && (

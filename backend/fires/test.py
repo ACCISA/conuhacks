@@ -13,7 +13,6 @@ sys.path.append("database")
 from allocator import Allocator
 from deployment import RedisDeploymentQueue
 from resources import reset_resources, pull_resources
-from fires import log_failed_response
 from event import add_to_main_queue, update_fire_by_id
 
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
@@ -44,7 +43,6 @@ def task_handler(task_data):
     if resource_usage is None or ttl is None:
         task_data['num_fires'] = deployment.deployed
         task_data['cur_fires'] = deployment.cur_fires
-        log_failed_response(task_data)
         update_fire_by_id(task['task_id'],{'status':'unllocated'})
         return
     resources_used = []
