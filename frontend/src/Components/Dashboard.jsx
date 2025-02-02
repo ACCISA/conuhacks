@@ -105,6 +105,9 @@ const Dashboard = () => {
             fire_start_time: task.fire_start_time,
             location: task.location,
             severity: task.severity,
+            status:task.status,
+            priority: task.priority,
+            resources:task?.resources
           }));
           return [...prevFireInfo, ...newFires];
         });
