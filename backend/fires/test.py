@@ -68,6 +68,7 @@ def add_task_to_queue(entry, priority, delay):
     logging.info(f"Redis(new entry, delay={delay})")
 
 def process_entries(df, entries):
+    """Processes entries and adds them to Redis."""
     for idx, entry in enumerate(entries):
         if idx > 0:
             diff = (entry['timestamp'] - df.iloc[idx - 1]['timestamp']).total_seconds()
@@ -78,7 +79,8 @@ def process_entries(df, entries):
 
 
 def start_simulation():
-    df = pd.read_csv("fires\\current_wildfiredata.csv")
+    """Reads wildfire data and starts adding tasks to Redis."""
+    df = pd.read_csv("fires/current_wildfiredata.csv")
     df['timestamp'] = pd.to_datetime(df['timestamp'], format='%Y-%m-%d %H:%M:%S')
     df = df.sort_values('timestamp')
 

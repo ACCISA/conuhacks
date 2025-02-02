@@ -1,6 +1,6 @@
 streamlit
 fastapi
-pandasx
+pandas
 matplotlib
 pymongo
 flask
@@ -11,3 +11,7 @@ scikit-learn
 seaborn
 folium
 streamlit-folium
+uvicorn
+redis
+resources
+staty
