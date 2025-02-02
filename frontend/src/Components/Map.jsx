@@ -41,7 +41,7 @@ const polygonOptions = {
   strokeWeight: 2,
 };
 
-const MapWithMultipleFires = ({ onFireClick, onClose }) => {
+const MapWithMultipleFires = ({ onFireClick, onClose, fireInfo }) => {
   const [fires, setFires] = useState(initialFires);
   const [activeInfoWindow, setActiveInfoWindow] = useState(null);
   const [simulatedDate, setSimulatedDate] = useState(new Date("2024-01-01"));
