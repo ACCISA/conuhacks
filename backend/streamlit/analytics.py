@@ -46,12 +46,36 @@ def create_bar_chart(data, x, y, title, color):
 # Function to create metrics card
 def create_metric(title, value, delta, color):
     st.markdown(f"""
+        <style>
+            .metric-card {{
+                padding: 15px;
+                border-radius: 10px;
+                text-align: center;
+            }}
+            .metric-title {{
+                font-size: 22px;
+                font-weight: bold;
+                color: #ffffff;
+                margin-bottom: 5px;
+            }}
+            .metric-value {{
+                font-size: 32px;
+                font-weight: bold;
+                color: {color};
+            }}
+            .metric-delta {{
+                font-size: 18px;
+                color: #cccccc;
+                margin-top: 5px;
+            }}
+        </style>
         <div class='metric-card'>
             <div class='metric-title'>{title}</div>
-            <div class='metric-value' style='color:{color};'>{value}</div>
+            <div class='metric-value'>{value}</div>
             <div class='metric-delta'>Change: {delta}</div>
         </div>
     """, unsafe_allow_html=True)
+
 
 def metric_total():
     create_metric("Total Fires", "512", "+15", "#FF6B6B")
