@@ -118,8 +118,10 @@ async def tasks_websocket(websocket: WebSocket):
 
     try:
         while True:
-            tasks = r.zrange(queue_key, 0, -1)  # Get all tasks in Redis
-            r.zremrangebyrank(queue_key, 0, -1)
+            
+            tasks = r.lrange('main_queue', 0, -1)  # Get all tasks in Redis
+            r.delete('main_queue')
+            
             if tasks:
                 task_list = [json.loads(task) for task in tasks]  # Convert to JSON
                 logging.info(f"Sending Redis tasks: {task_list}")
