@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 
-client = MongoClient('mongodb+srv://airbnc:airbnc@airbnc.6uoyscd.mongodb.net/')
+client = MongoClient('')
 print(client)
 
 db = client["fire_management"]
