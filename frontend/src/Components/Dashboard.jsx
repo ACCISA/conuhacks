@@ -25,6 +25,10 @@ const Dashboard = () => {
     setFilteredResources(resources.filter((resource) => resource.severity.includes(severity)));
   };
 
+  const handleClose = () => {
+    setFilteredResources(resources);
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white p-4">
       <div className="flex space-x-8 border-b border-gray-700 mb-4">
@@ -58,7 +62,7 @@ const Dashboard = () => {
 
           <div className="lg:w-3/4 bg-gray-800 p-4 rounded-xl shadow-xl">
             <h2 className="text-xl font-semibold mb-2">Fire Incident Map</h2>
-            <MapWithMultipleFires onFireClick={handleFireClick} />
+            <MapWithMultipleFires onFireClick={handleFireClick} onClose={handleClose} />
           </div>
         </div>
       )}

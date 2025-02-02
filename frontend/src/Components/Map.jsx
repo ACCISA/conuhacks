@@ -42,7 +42,7 @@ const polygonOptions = {
   strokeWeight: 2,
 };
 
-const MapWithMultipleFires = ({ onFireClick }) => {
+const MapWithMultipleFires = ({ onFireClick, onClose }) => {
   const [fires, setFires] = useState(initialFires);
   const [activeInfoWindow, setActiveInfoWindow] = useState(null);
   const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
@@ -74,6 +74,11 @@ const MapWithMultipleFires = ({ onFireClick }) => {
     onFireClick(fires[index].severity);
   };
 
+  const handleClose = () => {
+    setActiveInfoWindow(null);
+    onClose();
+  };
+
   return (
     <LoadScript googleMapsApiKey={apiKey}>
       <GoogleMap
@@ -92,7 +97,7 @@ const MapWithMultipleFires = ({ onFireClick }) => {
             {activeInfoWindow === index && (
               <FireDetailsOverlay
                 fire={fire}
-                onClose={() => setActiveInfoWindow(null)}
+                onClose={handleClose}
                 centroid={calculateCentroid(fire.coordinates)}
               />
             )}
