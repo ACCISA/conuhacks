@@ -1,3 +1,4 @@
+// PieChart.js
 import React from 'react';
 import { Pie } from 'react-chartjs-2';
 import { Chart, ArcElement, Tooltip, Legend } from 'chart.js';
@@ -16,10 +17,16 @@ const PieChart = () => {
     ],
   };
 
+  const options = {
+    maintainAspectRatio: false, // This allows custom height to work
+  };
+
   return (
-    <div className="bg-gray-800 p-4 rounded-xl shadow-xl">
+    <div className="bg-gray-800 p-4 rounded-xl shadow-xl h-[410px]">
       <h2 className="text-xl font-semibold mb-2">Resource Distribution</h2>
-      <Pie data={data} />
+      <div className="h-[350px]">
+        <Pie data={data} options={options} />
+      </div>
     </div>
   );
 };

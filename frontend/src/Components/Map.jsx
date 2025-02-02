@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { GoogleMap, LoadScript, Polygon } from "@react-google-maps/api";
-import FireAlert from "./FireAlert";
 import FireDetailsOverlay from "./FireDetailsOverlay";
 
 const containerStyle = {
@@ -45,6 +44,7 @@ const polygonOptions = {
 const MapWithMultipleFires = ({ onFireClick, onClose }) => {
   const [fires, setFires] = useState(initialFires);
   const [activeInfoWindow, setActiveInfoWindow] = useState(null);
+  const [simulatedDate, setSimulatedDate] = useState(new Date("2024-01-01"));
   const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
   useEffect(() => {
@@ -58,6 +58,9 @@ const MapWithMultipleFires = ({ onFireClick, onClose }) => {
           })),
         }))
       );
+
+      // Advance the date by 3 days every second
+      setSimulatedDate((prevDate) => new Date(prevDate.getTime() + 3 * 24 * 60 * 60 * 1000));
     }, 1000);
 
     return () => clearInterval(timer);
@@ -80,31 +83,37 @@ const MapWithMultipleFires = ({ onFireClick, onClose }) => {
   };
 
   return (
-    <LoadScript googleMapsApiKey={apiKey}>
-      <GoogleMap
-        mapContainerStyle={containerStyle}
-        center={center}
-        zoom={12}
-        mapTypeId="satellite"
-      >
-        {fires.map((fire, index) => (
-          <React.Fragment key={index}>
-            <Polygon
-              paths={fire.coordinates}
-              options={polygonOptions}
-              onClick={() => handleAlertClick(index)}
-            />
-            {activeInfoWindow === index && (
-              <FireDetailsOverlay
-                fire={fire}
-                onClose={handleClose}
-                centroid={calculateCentroid(fire.coordinates)}
+    <div className="relative">
+      <LoadScript googleMapsApiKey={apiKey}>
+        <GoogleMap
+          mapContainerStyle={containerStyle}
+          center={center}
+          zoom={12}
+          mapTypeId="satellite"
+        >
+          {fires.map((fire, index) => (
+            <React.Fragment key={index}>
+              <Polygon
+                paths={fire.coordinates}
+                options={polygonOptions}
+                onClick={() => handleAlertClick(index)}
               />
-            )}
-          </React.Fragment>
-        ))}
-      </GoogleMap>
-    </LoadScript>
+              {activeInfoWindow === index && (
+                <FireDetailsOverlay
+                  fire={fire}
+                  onClose={handleClose}
+                  centroid={calculateCentroid(fire.coordinates)}
+                />
+              )}
+            </React.Fragment>
+          ))}
+        </GoogleMap>
+      </LoadScript>
+
+      <div className="absolute bottom-2 left-2 bg-gray-800 text-white p-2 rounded-md shadow-md text-sm">
+        {simulatedDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+      </div>
+    </div>
   );
 };
 

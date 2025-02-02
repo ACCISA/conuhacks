@@ -20,7 +20,7 @@ const LineGraph = () => {
   };
 
   return (
-    <div className="bg-gray-800 p-4 rounded-xl shadow-xl">
+    <div className="bg-gray-800 p-4 rounded-xl shadow-xl h-[410px]"> 
       <h2 className="text-xl font-semibold mb-2">Incident Trends</h2>
       <Line data={data} />
     </div>
