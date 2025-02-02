@@ -38,7 +38,7 @@ const FireDetailsOverlay = ({ fire, onClose, centroid }) => (
         </button>
       </div>
       <div style={{ padding: "5px" }}>
-        <p>Location: Zone {fire.index + 1}</p>
+        <p>Location: {fire.location}</p>
         <p>Severity: {fire.severity}</p>
       </div>
     </div>

@@ -5,8 +5,11 @@ import LineGraph from './LineGraph';
 import FirePrediction from './FirePrediction';
 import PastFireMap from './PastFireMap';
 
+<<<<<<< HEAD
 import axios from 'axios';
 
+=======
+>>>>>>> 08e2b88197b1a0b466a6d89bcd66b76c9eded101
 // Map from backend resource keys -> your resource names
 const RESOURCE_KEY_MAP = {
   smoke_jumpers: "Smoke Jumpers",
