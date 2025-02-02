@@ -86,7 +86,8 @@ const Dashboard = () => {
           location: task.location,
           severity: task.severity,
         }));
-        setfireInfo(fires);
+                
+        setfireInfo(fires);       
       } else {
         
         setfireInfo([{ location: taskData.location, fire_start_time: taskData.fire_start_time, severity: taskData.severity }]);
