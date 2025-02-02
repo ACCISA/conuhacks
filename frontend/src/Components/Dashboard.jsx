@@ -3,6 +3,7 @@ import MapWithMultipleFires from './Map';
 import PieChart from './PieChart';
 import LineGraph from './LineGraph';
 import FirePrediction from './FirePrediction';
+import PastFireMap from './PastFireMap';
 
 // Map from backend resource keys -> your resource names
 const RESOURCE_KEY_MAP = {
@@ -332,139 +333,139 @@ const Dashboard = () => {
 
       {/* CSV Tab */}
       {activeTab === 'csv' && (
-        <div className="bg-gray-800 rounded-xl shadow-xl min-h-screen">
-          <iframe
-            src="http://localhost:8501?embed=true&component=csv_processing"
-            style={{ border: 'none', width: '100%', height: '100vh' }}
-          />
-        </div>
-      )}
-
-      {/* Analytics Tab */}
-      {activeTab === 'analytics' && (
-        <div className="">
-          <div className="flex flex-row w-full justify-around mb-4">
-            <div className="bg-gray-800 p-4 flex justify-center w-full rounded-xl shadow-xl m-2">
-              <iframe
-                className="w-full"
-                src="http://localhost:8501?embed=true&component=metric_total&embed_options=disable_scrolling"
-                style={{
-                  border: 'none',
-                  height: '20vh'
-                }}
-              />
-            </div>
-            <div className="bg-gray-800 p-4 w-full rounded-xl shadow-xl m-2">
-              <iframe
-                className="w-full"
-                src="http://localhost:8501?embed=true&component=metric_support&embed_options=disable_scrolling"
-                style={{
-                  border: 'none',
-                  height: '20vh'
-                }}
-              />
-            </div>
-            <div className="bg-gray-800 p-4 w-full rounded-xl shadow-xl m-2">
-              <iframe
-                className="w-full"
-                src="http://localhost:8501?embed=true&component=metric_signup&embed_options=disable_scrolling"
-                style={{
-                  border: 'none',
-                  height: '20vh'
-                }}
-              />
-            </div>
-            <div className="bg-gray-800 p-4 w-full rounded-xl shadow-xl m-2">
-              <iframe
-                className="w-full"
-                src="http://localhost:8501?embed=true&component=metric_resource&embed_options=disable_scrolling"
-                style={{
-                  border: 'none',
-                  height: '20vh'
-                }}
-              />
-            </div>
-          </div>
-          <div className="bg-gray-800 p-4 w-full rounded-xl shadow-xl">
+        <div className='flex row w-full justify-around'>
+          <div className="bg-gray-800 w-full rounded-xl shadow-xl min-h-screen m-2">
             <iframe
-              src="http://localhost:8501?embed=true&component=metric_graph"
-              style={{
-                border: 'none',
-                width: '100%',
-                height: '100vh'
-              }}
+              src='http://localhost:8501?embed=true&component=csv_processing'
+              style={{ border: 'none', width: '100%', height: '100vh' }}
             />
           </div>
-          <div>
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                color: "white",
-                fontSize: "12px"
-              }}
-            >
-              <thead>
-                <tr style={{ background: "#111", textAlign: "left" }}>
-                  <th>Timestamp</th>
-                  <th>Latitude</th>
-                  <th>Longitude</th>
-                  <th>Probability</th>
-                  <th>Temp (°C)</th>
-                  <th>Humidity (%)</th>
-                  <th>Wind (km/h)</th>
-                  <th>Precip (mm)</th>
-                  <th>Vegetation Index</th>
-                  <th>Human Activity</th>
-                </tr>
-              </thead>
-              <tbody>
-                {fireData.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan="10"
-                      style={{
-                        textAlign: "center",
-                        padding: "10px",
-                        color: "#999"
-                      }}
-                    >
-                      [INFO] Waiting for db data...
-                    </td>
-                  </tr>
-                ) : (
-                  fireData.map((fire, index) => {
-                    const details = fire.other_details || {};
-                    return (
-                      <tr
-                        key={index}
-                        style={{
-                          background: index % 2 === 0 ? "#111" : "#222",
-                          cursor: "pointer"
-                        }}
-                        onClick={() => handleLocationClick(fire)}
-                      >
-                        <td>{fire.timestamp}</td>
-                        <td>{fire.latitude.toFixed(4)}</td>
-                        <td>{fire.longitude.toFixed(4)}</td>
-                        <td style={{ color: getCircleColor(fire.fire_risk_probability) }}>
-                          {Math.round(fire.fire_risk_probability * 100)}%
-                        </td>
-                        <td>{details.temperature ?? "N/A"}°C</td>
-                        <td>{details.humidity ?? "N/A"}%</td>
-                        <td>{details.wind_speed ?? "N/A"} km/h</td>
-                        <td>{details.precipitation ?? "N/A"} mm</td>
-                        <td>{details.vegetation_index ?? "N/A"}</td>
-                        <td>{details.human_activity_index ?? "N/A"}</td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+          <div className="bg-gray-800 w-full rounded-xl shadow-xl min-h-screen m-2">
+            <iframe
+              src='http://localhost:8501?embed=true&component=csv_processing_prediction'
+              style={{ border: 'none', width: '100%', height: '100vh' }}
+            />
           </div>
         </div>
+        
       )}
+
+{activeTab === 'analytics' && (
+  <div className=''>
+    <div className="flex flex-row w-full justify-around mb-4">
+      <div className='bg-gray-800 p-4 flex justify-center w-full rounded-xl shadow-xl m-2'>
+        <iframe
+          className='w-full'
+          src="http://localhost:8501?embed=true&component=metric_total&embed_options=disable_scrolling"
+          style={{
+            border: 'none',
+            height: '20vh'
+          }}
+        />
+      </div>
+      <div className='bg-gray-800 p-4 w-full rounded-xl shadow-xl m-2'>
+        <iframe
+          className='w-full'  
+          src="http://localhost:8501?embed=true&component=metric_support&embed_options=disable_scrolling"
+          style={{
+            border: 'none',
+            height: '20vh'
+          }}
+        />
+      </div>
+      <div className='bg-gray-800 p-4 w-full rounded-xl shadow-xl m-2'>
+        <iframe
+          className='w-full'  
+          src="http://localhost:8501?embed=true&component=metric_signup&embed_options=disable_scrolling"
+          style={{
+            border: 'none',
+            height: '20vh'
+          }}
+        />
+      </div>
+      <div className='bg-gray-800 p-4 w-full rounded-xl shadow-xl m-2'>
+        <iframe
+          className='w-full'  
+          src="http://localhost:8501?embed=true&component=metric_resource&embed_options=disable_scrolling"
+          style={{
+            border: 'none',
+            height: '20vh'
+          }}
+        />
+      </div>
+    </div>
+
+    <div className="flex flex-row w-full space-x-4 mb-4">
+
+      <div className="bg-gray-800 p-4 w-2/3 rounded-xl shadow-xl">
+        <h2 className="text-xl font-semibold mb-2">Fire Data Table</h2>
+        <table style={{ width: "100%", borderCollapse: "collapse", color: "white", fontSize: "12px" }}>
+          <thead>
+            <tr style={{ background: "#111", textAlign: "left" }}>
+              <th>Timestamp</th>
+              <th>Fire Start Time</th>
+              <th>Location</th>
+              <th>Severity</th>
+              <th>Resources</th>
+              <th>Cost ($)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {fireData.length === 0 ? (
+              <tr>
+                <td colSpan="5" style={{ textAlign: "center", padding: "10px", color: "#999" }}>
+                  [INFO] Waiting for db data...
+                </td>
+              </tr>
+            ) : (
+              fireData.map((fire, index) => {
+                const details = fire.other_details || {};
+                return (
+                  <tr 
+                    key={index} 
+                    style={{ background: index % 2 === 0 ? "#111" : "#222", cursor: "pointer" }} 
+                    onClick={() => handleLocationClick(fire)}
+                  >
+                    <td>{fire.timestamp}</td>
+                    <td>{details.fire_start_time ?? "N/A"}</td>
+                    <td>{fire.latitude.toFixed(4)},{fire.longitude.toFixed(4)}</td>
+                    <td 
+                      style={{
+                        color: fire.severity === "high" ? "red" : fire.severity === "medium" ? "orange" : "green",
+                        fontWeight: "bold"
+                      }}
+                    >
+                      {fire.severity.charAt(0).toUpperCase() + fire.severity.slice(1)}
+                    </td>
+                    <td>{details.resources ? `$${details.resources.toLocaleString()}` : "N/A"}</td>
+                    <td>{details.cost ? `$${details.cost.toLocaleString()}` : "N/A"}</td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="bg-gray-800 p-4 w-1/3 rounded-xl shadow-xl">
+        <h2 className="text-xl font-semibold mb-2">Past Fire Map</h2>
+        <PastFireMap />
+      </div>
+    </div>
+
+    <div className="bg-gray-800 p-4 w-full rounded-xl shadow-xl">
+      <iframe
+        src="http://localhost:8501?embed=true&component=metric_graph"
+        style={{
+          border: 'none',
+          width: '100%',
+          height: '100vh'
+        }}
+      />
+    </div>
+  </div>
+)}
+
 
       {activeTab === 'metrics' && (
         <div className="flex space-x-4">

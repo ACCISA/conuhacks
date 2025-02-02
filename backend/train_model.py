@@ -4,10 +4,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from imblearn.over_sampling import SMOTE
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, roc_auc_score
+from database.database import mongo_to_csv
 
 # Load historical data
-historical_env_df = pd.read_csv("./training_data/historical_environmental_data.csv")
-historical_fire_df = pd.read_csv("./training_data/historical_wildfiredata.csv")
+historical_env_df = pd.DataFrame(list(mongo_to_csv("./training_data/historical_environmental_data.csv")))
+historical_fire_df = pd.DataFrame(list(mongo_to_csv("./training_data/historical_wildfiredata.csv")))
 
 # Convert timestamps
 historical_env_df["timestamp"] = pd.to_datetime(historical_env_df["timestamp"])
