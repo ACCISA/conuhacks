@@ -1,12 +1,21 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+
 import { Line } from 'react-chartjs-2';
 import { Chart, LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend } from 'chart.js';
 
 // Register necessary chart components
 Chart.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend);
 
-const LineGraph = () => {
-  const data = {
+const LineGraph = ({ fireInfo }) => {
+
+  const [fires, setFires] = useState([]);
+
+  useEffect(() => {
+    
+    setFires((prevLineData) => [...prevLineData, ...fires]);
+  }, [fireInfo]);
+
+  var data = {
     labels: ['January', 'February', 'March', 'April', 'May'],
     datasets: [
       {

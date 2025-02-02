@@ -6,8 +6,7 @@ import FirePrediction from './FirePrediction';
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
-
-  const [tasks, setTasks] = useState('');
+  const [fireInfo, setfireInfo] = useState([]);
   const [socket, setSocket] = useState(null);
 
   // We keep "severity" for filtering AND add usage-based status
@@ -81,8 +80,19 @@ const Dashboard = () => {
   
     taskSocket.onmessage = (event) => {
       const taskData = JSON.parse(event.data);
-      console.log("New Task:", taskData);
-      setTasks((prev) => [...prev, taskData]);
+      if (Array.isArray(taskData)) {
+        const fires = taskData.map(task => ({
+          fire_start_time: task.fire_start_time,
+          location: task.location,
+          severity: task.severity,
+        }));
+        setfireInfo(fires);
+      } else {
+        
+        setfireInfo([{ location: taskData.location, fire_start_time: taskData.fire_start_time, severity: taskData.severity }]);
+      }
+    
+      
     };
 
     taskSocket.onerror = (error) => {
@@ -164,14 +174,14 @@ const Dashboard = () => {
             <div className="lg:w-4/5 bg-gray-800 p-4 rounded-xl shadow-xl">
               <h2 className="text-xl font-semibold mb-2">Fire Incident Map</h2>
               {/* Pass handleFireClick so we still filter by the clicked severity */}
-              <MapWithMultipleFires onFireClick={handleFireClick} onClose={handleClose} />
+              <MapWithMultipleFires onFireClick={handleFireClick} onClose={handleClose} fireInfo={fireInfo}/>
             </div>
           </div>
 
           {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <PieChart />
-            <LineGraph />
+            <PieChart fireInfo={fireInfo}/>
+            <LineGraph fireInfo={fireInfo}/>
           </div>
         </div>
       )}

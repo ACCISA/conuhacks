@@ -6,7 +6,7 @@ import { Chart, ArcElement, Tooltip, Legend } from 'chart.js';
 // Register necessary chart components
 Chart.register(ArcElement, Tooltip, Legend);
 
-const PieChart = () => {
+const PieChart = ({ fireInfo }) => {
   const data = {
     labels: ['High', 'Medium', 'Low'],
     datasets: [
