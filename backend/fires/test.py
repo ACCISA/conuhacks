@@ -4,55 +4,77 @@ import logging
 import redis
 import json
 import threading
+import sys
+import uuid
+from pprint import pprint
+
+sys.path.append("database")
 
 from allocator import Allocator
+from deployment import RedisDeploymentQueue
+from resources import reset_resources, pull_resources
 
 # Set up Redis connection
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
 queue_key = "priority_queue2"
 
 r.delete(queue_key)
+r.delete("locker_handler")
 
 speed_factor = 100000
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 allocator = Allocator() 
+deployment = RedisDeploymentQueue()
+
+import uuid
+
+def short_uuid():
+    full_uuid = uuid.uuid4()
+    return str(full_uuid).replace('-', '')[:8]
+
+
+def log_failed_deployment(entry):
+    pass
 
 def task_handler(task_data):
     task = json.loads(task_data)
-    print(task)
-    logging.info(f"Processing task: {task['task_id']}, Priority: {task['priority']}, Timestamp: {task['timestamp']}")
-    allocator.allocate_task(task)
+    allocator.severity = task['priority']
+    resource_usage, ttl = allocator.allocate_task(task)
+    if resource_usage is None or ttl is None:
+        log_failed_deployment(task)
+        return
+
+    deployment.deploy(task,resource_usage,ttl)
+
 
 def listen_to_queue():
     while True:
         task_data = r.zrange(queue_key, 0, 0)  # Get the highest priority task
         if task_data:
             task_data = task_data[0]  # Extract task data
+            lock = r.lock("locker_handler")
+            lock.acquire(blocking=True)
             task_handler(task_data)
             r.zrem(queue_key, task_data)
+            lock.release()
         time.sleep(0.5)  # To prevent busy-waiting, add a small sleep
 
 
-def add_task_to_queue(entry, priority):
-    print(entry)
-    print("----")
+def add_task_to_queue(entry, priority, delay):
     entry_serialized = json.dumps(entry)
-    print(entry_serialized)
     r.zadd(queue_key, {entry_serialized: priority})  # Add task with priority to Redis sorted set
-    logging.info(f"Added task: {entry['task_id']} to the queue with priority: {priority}")
-
+    logging.info(f"Redis(new entry, delay={delay})")
 
 def process_entries(df, entries):
     for idx, entry in enumerate(entries):
         if idx > 0:
             diff = (entry['timestamp'] - df.iloc[idx - 1]['timestamp']).total_seconds()
             time_adjust = diff / speed_factor
-            logging.info("Delaying: "+str(time_adjust))
             time.sleep(time_adjust)  # Simulate the real-time data insertion delay
             entry['timestamp'] = str(entry['timestamp'])
-            add_task_to_queue(entry, entry['priority'])  # Add task to Redis priority queue
+            add_task_to_queue(entry, entry['priority'], time_adjust)  # Add task to Redis priority queue
 
 
 def start_simulation():
@@ -64,22 +86,29 @@ def start_simulation():
 
     for entry in entries:
         priorities = {
-            "high": 3,
-            "medium": 2,
-            "low": 1
+            "high": [3,30],
+            "medium": [2,15],
+            "low": [1,5]
         }
-        entry['priority'] = priorities[entry['severity']]
-        entry['task_id'] = f"task_{entries.index(entry)}"  # Assign a unique task_id for logging
+        entry['priority'] = priorities[entry['severity']][0]
+        entry['points'] = priorities[entry['severity']][1] 
+        entry['task_id'] =  short_uuid()
 
     process_entries(df, entries)
 
 
 def start_listener():
-    listener_thread = threading.Thread(target=listen_to_queue, daemon=True)
-    listener_thread.start()
+    logging.info("Allocator thread started")
+    threading.Thread(target=listen_to_queue, daemon=True).start()
+    logging.info("Deployment thread started")
+    threading.Thread(target=deployment.process_queue, daemon=True).start()
+
+    
 
 
 if __name__ == "__main__":
     logging.info("Starting test.py")
+    reset_resources()
+    pprint(pull_resources()['resources'])
     start_listener()
     start_simulation() 
