@@ -1,3 +1,6 @@
+import redis
+import subprocess
+import json
 import logging
 import asyncio
 import pandas as pd
@@ -46,6 +49,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+r = redis.StrictRedis(host="localhost", port=6379, db=0, decode_responses=True)
+queue_key = "priority_queue2"
+
+r.delete(queue_key)
 
 logging.basicConfig(level=logging.INFO)
 
@@ -101,6 +109,28 @@ async def websocket_endpoint(websocket: WebSocket):
     finally:
         await websocket.close()
 
+@app.websocket("/ws/tasks")
+async def tasks_websocket(websocket: WebSocket):
+    """Stream tasks from Redis separately"""
+    await websocket.accept()
+    logging.info("Client connected to Redis tasks WebSocket")
+
+    try:
+        while True:
+            tasks = r.zrange(queue_key, 0, -1)  # Get all tasks in Redis
+            if tasks:
+                task_list = [json.loads(task) for task in tasks]  # Convert to JSON
+                logging.info(f"Sending Redis tasks: {task_list}")
+
+                await websocket.send_json(task_list)
+            
+            await asyncio.sleep(1)  # Wait before checking again
+    except Exception as e:
+        logging.error(f"Tasks WebSocket error: {e}")
+    finally:
+        await websocket.close()
+
 if __name__ == "__main__":
     import uvicorn
+    subprocess.Popen(["python", "fires/test.py"])
     uvicorn.run(app, host="0.0.0.0", port=5002)
