@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { GoogleMap, LoadScript, Polygon } from "@react-google-maps/api";
-import FireAlert from "./FireAlert";
-import ResourceCard from "./ResourceCard";
 import FireDetailsOverlay from "./FireDetailsOverlay";
 
 const containerStyle = {
   width: "100%",
-  height: "630px",
+  height: "600px",
 };
 
 const center = {
@@ -35,14 +33,6 @@ const initialFires = [
   },
 ];
 
-const resources = [
-  { name: "Smoke Jumpers", total: 5, inUse: 2, cost: 5000, severity: "Medium" },
-  { name: "Fire Engines", total: 10, inUse: 8, cost: 2000, severity: "Low" },
-  { name: "Helicopters", total: 3, inUse: 1, cost: 8000, severity: "Medium,High" },
-  { name: "Tanker Planes", total: 2, inUse: 1, cost: 15000, severity: "High,Medium" },
-  { name: "Ground Crews", total: 8, inUse: 6, cost: 3000, severity: "Low,Medium,High" },
-];
-
 const polygonOptions = {
   fillColor: "red",
   fillOpacity: 0.4,
@@ -51,17 +41,28 @@ const polygonOptions = {
   strokeWeight: 2,
 };
 
-const MapWithFiresAndStations = () => {
+const MapWithMultipleFires = ({ onFireClick, onClose }) => {
+  const [fires, setFires] = useState(initialFires);
   const [activeInfoWindow, setActiveInfoWindow] = useState(null);
-  const [map, setMap] = useState(null);
-  const [simulatedDays, setSimulatedDays] = useState(0);
-  const startDate = new Date("2024-01-01");
+  const [simulatedDate, setSimulatedDate] = useState(new Date("2024-01-01"));
   const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setSimulatedDays((prevDays) => prevDays + 3.04);
+      setFires((prevFires) =>
+        prevFires.map((fire) => ({
+          ...fire,
+          coordinates: fire.coordinates.map((coord) => ({
+            lat: coord.lat + (Math.random() - 0.5) * 0.01,
+            lng: coord.lng + (Math.random() - 0.5) * 0.01,
+          })),
+        }))
+      );
+
+      // Advance the date by 3 days every second
+      setSimulatedDate((prevDate) => new Date(prevDate.getTime() + 3 * 24 * 60 * 60 * 1000));
     }, 1000);
+
     return () => clearInterval(timer);
   }, []);
 
@@ -73,42 +74,24 @@ const MapWithFiresAndStations = () => {
 
   const handleAlertClick = (index) => {
     setActiveInfoWindow(index);
-    if (map) {
-      map.panTo(calculateCentroid(initialFires[index].coordinates));
-    }
+    onFireClick(fires[index].severity);
   };
 
-  const currentDate = new Date(startDate.getTime() + simulatedDays * 24 * 60 * 60 * 1000);
-
-  const filteredResources = (severity) => {
-    return resources.filter((res) => res.severity.includes(severity));
+  const handleClose = () => {
+    setActiveInfoWindow(null);
+    onClose();
   };
 
   return (
-    <LoadScript googleMapsApiKey={apiKey}>
-      <div style={{ position: "relative" }}>
-        <div style={{ position: "absolute", top: 10, right: 10, zIndex: 1000 }}>
-          {initialFires.map((fire, index) => (
-            <FireAlert key={index} fire={fire} index={index} onClick={() => handleAlertClick(index)} />
-          ))}
-        </div>
-
-        <div style={{ position: "absolute", top: 10, left: 10, zIndex: 1000 }}>
-          {(activeInfoWindow !== null ? filteredResources(initialFires[activeInfoWindow].severity) : resources).map(
-            (resource, resIndex) => (
-              <ResourceCard key={resIndex} resource={resource} />
-            )
-          )}
-        </div>
-
+    <div className="relative">
+      <LoadScript googleMapsApiKey={apiKey}>
         <GoogleMap
           mapContainerStyle={containerStyle}
           center={center}
           zoom={12}
           mapTypeId="satellite"
-          onLoad={(map) => setMap(map)}
         >
-          {initialFires.map((fire, index) => (
+          {fires.map((fire, index) => (
             <React.Fragment key={index}>
               <Polygon
                 paths={fire.coordinates}
@@ -118,35 +101,20 @@ const MapWithFiresAndStations = () => {
               {activeInfoWindow === index && (
                 <FireDetailsOverlay
                   fire={fire}
-                  onClose={() => setActiveInfoWindow(null)}
+                  onClose={handleClose}
                   centroid={calculateCentroid(fire.coordinates)}
                 />
               )}
             </React.Fragment>
           ))}
         </GoogleMap>
+      </LoadScript>
 
-        <div
-          style={{
-            backgroundColor: "#333",
-            color: "white",
-            padding: "5px",
-            textAlign: "center",
-            position: "absolute",
-            bottom: 10,
-            right: 10,
-            borderRadius: "5px",
-          }}
-        >
-          {currentDate.toLocaleDateString("en-US", {
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-          })}
-        </div>
+      <div className="absolute bottom-2 left-2 bg-gray-800 text-white p-2 rounded-md shadow-md text-sm">
+        {simulatedDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
       </div>
-    </LoadScript>
+    </div>
   );
 };
 
-export default MapWithFiresAndStations;
+export default MapWithMultipleFires;
