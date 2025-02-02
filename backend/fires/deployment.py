@@ -9,7 +9,7 @@ import sys
 sys.path.append("database")
 
 from resources import pull_resources, update_resource
-from event import remove_fire_by_id
+from event import remove_fire_by_id,update_fire_by_id
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -32,6 +32,7 @@ class RedisDeploymentQueue:
         self.deployed += 1
         self.cur_fires.append(entry['task_id'])
         entry['deployment_cost'] = self.calculate_cost(resources[1])
+        update_fire_by_id(entry['task_id'],{"deployment_cost":entry['deployment_cost']})
         logging.info(f"Deployment(task_id={entry['task_id']},ttl={ttl},cost={entry['deployment_cost']},deployed)")
     
     def process_queue(self):
