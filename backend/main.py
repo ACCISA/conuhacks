@@ -53,15 +53,19 @@ class FirePrediction(BaseModel):
     fire_risk: int
 
 def predict_fire_risk(row):
-    input_features = row.values.reshape(1, -1)
-    fire_risk_prob = model.predict_proba(input_features)[0][1]
-    fire_risk = 1 if fire_risk_prob > 0.5 else 0
-    return FirePrediction(
-        latitude=row["latitude"],
-        longitude=row["longitude"],
-        fire_risk_probability=round(fire_risk_prob, 2),
-        fire_risk=fire_risk
-    )
+     """Predict fire risk probability and return detailed info."""
+     input_features = row.values.reshape(1, -1)
+     fire_risk_prob = model.predict_proba(input_features)[0][1]
+    
+     if fire_risk_prob > 0.01:  # Only process if probability is > 0.01
+        return {
+            "latitude": row["latitude"],
+            "longitude": row["longitude"],
+            "fire_risk_probability": round(fire_risk_prob, 2),
+            "fire_risk": 1 if fire_risk_prob > 0.5 else 0,
+            "other_details": row.to_dict()  # Include all row details
+        }
+     return None
 
 # REST API endpoint
 @app.get("/get_fire_predictions", response_model=list[FirePrediction])
@@ -82,8 +86,9 @@ async def websocket_endpoint(websocket: WebSocket):
             for _, row in future_env_df.iterrows():
                 prediction = predict_fire_risk(row)
                 logging.info(f"Sending fire prediction: {prediction}")
-                await websocket.send_json(prediction.dict())
-                await asyncio.sleep(5)  # Send every 5 seconds
+                if prediction:
+                    await websocket.send_json(prediction)
+                    await asyncio.sleep(5)  # Send every 5 seconds
     except Exception as e:
         logging.error(f"WebSocket error: {e}")
     finally:

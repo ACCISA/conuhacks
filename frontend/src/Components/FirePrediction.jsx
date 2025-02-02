@@ -17,6 +17,7 @@ const transitionDuration = 1000;
 
 const FirePredictionMap = () => {
   const [firePredictions, setFirePredictions] = useState([]);
+  const [socket, setSocket] = useState(null);
   const [mapCenter, setMapCenter] = useState(defaultCenter);
   const [mapZoom, setMapZoom] = useState(defaultZoom);
   const mapRef = useRef(null);
@@ -43,9 +44,10 @@ const FirePredictionMap = () => {
         setFirePredictions(prev => [
           ...prev,
           {
-            lat: data.latitude,
-            lng: data.longitude,
-            risk: data.fire_risk_probability
+            latitude: data.latitude,
+            longitude: data.longitude,
+            fire_risk_probability: data.fire_risk_probability,
+            other_details: data.other_details
           }
         ]);
       } catch (error) {
@@ -70,28 +72,49 @@ const FirePredictionMap = () => {
       }
     };
   }, []);
+  const getCircleColor = (probability) => {
+    if (probability > 0.75) return "#FF0000";
+    if (probability > 0.5) return "#FFA500";
+    return "#FFFF00";
+  };
+
+  const handleLocationClick = (fire) => {
+    if (mapRef.current) {
+      const newCenter = { lat: fire.latitude, lng: fire.longitude };
+
+      // i thin kthas cool
+      const steps = 30;
+      const stepDuration = transitionDuration / steps;
+      let stepCount = 0;
+
+      const startLat = mapRef.current.getCenter().lat();
+      const startLng = mapRef.current.getCenter().lng();
+      const deltaLat = (newCenter.lat - startLat) / steps;
+      const deltaLng = (newCenter.lng - startLng) / steps;
+
+      const smoothMove = setInterval(() => {
+        if (stepCount >= steps) {
+          clearInterval(smoothMove);
+          mapRef.current.panTo(newCenter);
+        } else {
+          mapRef.current.panTo({
+            lat: startLat + deltaLat * stepCount,
+            lng: startLng + deltaLng * stepCount,
+          });
+          stepCount++;
+        }
+      }, stepDuration);
+
+      mapRef.current.setZoom(zoomedInLevel);
+    }
+  };
+
 
   return (
     <LoadScript googleMapsApiKey={apiKey}>
       <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
         <div style={{ position: "relative" }}>
-          <button
-            onClick={initiateConnection}
-            style={{
-              position: "absolute",
-              top: 10,
-              left: 10,
-              zIndex: 1000,
-              padding: "10px",
-              background: "blue",
-              color: "white",
-              border: "none",
-              cursor: "pointer",
-              borderRadius: "5px",
-            }}
-          >
-            Connect & Get Fire Predictions
-          </button>
+       
           <GoogleMap
             mapContainerStyle={containerStyle}
             center={mapCenter}
@@ -143,6 +166,7 @@ const FirePredictionMap = () => {
                 </tr>
               ) : (
                 firePredictions.map((fire, index) => {
+                  console.log("Fire"+fire)
                   const details = fire.other_details || {}; // Ensure other_details exists
                   return (
                     <tr
@@ -151,8 +175,12 @@ const FirePredictionMap = () => {
                       onClick={() => handleLocationClick(fire)}
                     >
                       <td style={{ padding: "5px", borderBottom: "1px solid #333" }}>{new Date().toLocaleTimeString()}</td>
-                      <td style={{ padding: "5px", borderBottom: "1px solid #333" }}>{fire.latitude.toFixed(4)}</td>
-                      <td style={{ padding: "5px", borderBottom: "1px solid #333" }}>{fire.longitude.toFixed(4)}</td>
+                      <td style={{ padding: "5px", borderBottom: "1px solid #333" }}>
+                      {fire.latitude ? fire.latitude.toFixed(4) : "N/A"}
+                      </td>
+                      <td style={{ padding: "5px", borderBottom: "1px solid #333" }}>
+                      {fire.longitude ? fire.longitude.toFixed(4) : "N/A"}
+                      </td>
                       <td style={{ padding: "5px", borderBottom: "1px solid #333", color: getCircleColor(fire.fire_risk_probability) }}>
                         {Math.round(fire.fire_risk_probability * 100)}%
                       </td>
