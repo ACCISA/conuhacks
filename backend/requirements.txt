@@ -8,4 +8,6 @@ joblib
 flask_cors
 flask_socketio
 scikit-learn
-
+seaborn
+folium
+streamlit-folium
