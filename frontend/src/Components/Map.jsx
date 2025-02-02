@@ -45,6 +45,7 @@ const MapWithMultipleFires = ({ onFireClick, onClose }) => {
   const [fires, setFires] = useState(initialFires);
   const [activeInfoWindow, setActiveInfoWindow] = useState(null);
   const [simulatedDate, setSimulatedDate] = useState(new Date("2024-01-01"));
+  const [map, setMap] = useState(null); // Store map instance
   const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
   useEffect(() => {
@@ -58,7 +59,6 @@ const MapWithMultipleFires = ({ onFireClick, onClose }) => {
           })),
         }))
       );
-
       // Advance the date by 3 days every second
       setSimulatedDate((prevDate) => new Date(prevDate.getTime() + 3 * 24 * 60 * 60 * 1000));
     }, 1000);
@@ -75,6 +75,12 @@ const MapWithMultipleFires = ({ onFireClick, onClose }) => {
   const handleAlertClick = (index) => {
     setActiveInfoWindow(index);
     onFireClick(fires[index].severity);
+
+    // Center the map on this fire's centroid
+    const centroid = calculateCentroid(fires[index].coordinates);
+    if (map) {
+      map.panTo(centroid);
+    }
   };
 
   const handleClose = () => {
@@ -90,6 +96,7 @@ const MapWithMultipleFires = ({ onFireClick, onClose }) => {
           center={center}
           zoom={12}
           mapTypeId="satellite"
+          onLoad={(mapInstance) => setMap(mapInstance)} // capture map instance
         >
           {fires.map((fire, index) => (
             <React.Fragment key={index}>
@@ -110,8 +117,38 @@ const MapWithMultipleFires = ({ onFireClick, onClose }) => {
         </GoogleMap>
       </LoadScript>
 
+      {/* New top-right alerts */}
+      <div
+        style={{
+          position: "absolute",
+          top: "1rem",
+          right: "1rem",
+        }}
+      >
+        {fires.map((_, index) => (
+          <div
+            key={index}
+            style={{
+              backgroundColor: "red",
+              color: "white",
+              marginBottom: "0.5rem",
+              padding: "0.5rem 1rem",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+            onClick={() => handleAlertClick(index)}
+          >
+            Alert: New Fire #{index + 1}
+          </div>
+        ))}
+      </div>
+
       <div className="absolute bottom-2 left-2 bg-gray-800 text-white p-2 rounded-md shadow-md text-sm">
-        {simulatedDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+        {simulatedDate.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })}
       </div>
     </div>
   );
