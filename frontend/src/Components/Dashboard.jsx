@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import MapWithMultipleFires from './Map';
+import FirePrediction from './FirePrediction';
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -35,30 +36,15 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-4">
       <div className="flex space-x-8 border-b border-gray-700 mb-4">
-        <div
-          className={`pb-2 cursor-pointer ${activeTab === 'dashboard' ? 'border-b-4 border-blue-500 text-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
-          onClick={() => handleTabClick('dashboard')}
-        >
-          Dashboard
-        </div>
-        <div
-          className={`pb-2 cursor-pointer ${activeTab === 'csv' ? 'border-b-4 border-blue-500 text-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
-          onClick={() => handleTabClick('csv')}
-        >
-          CSV Uploads
-        </div>
-        <div
-          className={`pb-2 cursor-pointer ${activeTab === 'analytics' ? 'border-b-4 border-blue-500 text-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
-          onClick={() => handleTabClick('analytics')}
-        >
-          Analytics
-        </div>
-        <div
-          className={`pb-2 cursor-pointer ${activeTab === 'metrics' ? 'border-b-4 border-blue-500 text-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
-          onClick={() => handleTabClick('metrics')}
-        >
-          Metrics
-        </div>
+        {['dashboard', 'csv', 'analytics', 'metrics', 'prediction'].map((tab) => (
+          <div
+            key={tab}
+            className={`pb-2 cursor-pointer ${activeTab === tab ? 'border-b-4 border-blue-500 text-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
+            onClick={() => handleTabClick(tab)}
+          >
+            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+          </div>
+        ))}
       </div>
 
       {activeTab === 'dashboard' && (
@@ -67,36 +53,6 @@ const Dashboard = () => {
             <h2 className="text-xl font-semibold mb-2">Fire Incident Map</h2>
             <MapWithMultipleFires showAlerts={true} />
           </div>
-
-          <div className="bg-gray-800 p-4 rounded-xl shadow-xl lg:col-span-3">
-            <h2 className="text-xl font-semibold mb-2">Fire Department Resources</h2>
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-700">
-                  <th className="p-3">Resource</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3">Location</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-t border-gray-600">
-                  <td className="p-3">Fire Truck A</td>
-                  <td className="p-3 text-green-400">Available</td>
-                  <td className="p-3">Station 1</td>
-                </tr>
-                <tr className="border-t border-gray-600">
-                  <td className="p-3">Rescue Team B</td>
-                  <td className="p-3 text-yellow-400">On Duty</td>
-                  <td className="p-3">Location XYZ</td>
-                </tr>
-                <tr className="border-t border-gray-600">
-                  <td className="p-3">Water Tank C</td>
-                  <td className="p-3 text-red-400">Deployed</td>
-                  <td className="p-3">ABC Area</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
         </div>
       )}
 
@@ -104,11 +60,7 @@ const Dashboard = () => {
         <div className="bg-gray-800 rounded-xl shadow-xl min-h-screen">
           <iframe 
             src='http://localhost:8501?embed=true&component=csv_processing'
-            style={{
-              border: 'none',
-              width: '100%',
-              height: '100vh'
-            }}
+            style={{ border: 'none', width: '100%', height: '100vh' }}
           />
         </div>
       )}
@@ -139,6 +91,17 @@ const Dashboard = () => {
             ))}
           </div>
         </div>
+      )}
+
+      {activeTab === 'prediction' && (
+
+
+<div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+<div className="col-span-3 bg-gray-800 p-4 rounded-xl shadow-xl">
+  <h2 className="text-xl font-semibold mb-2">predict shit</h2>
+  <FirePrediction/>
+</div>
+</div>
       )}
     </div>
   );
