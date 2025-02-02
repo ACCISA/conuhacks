@@ -1,15 +1,15 @@
 import logging
-import time
+import asyncio
 import pandas as pd
 import joblib
-from flask import Flask, jsonify
-from flask_cors import CORS
-from flask_socketio import SocketIO
+from fastapi import FastAPI, WebSocket
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 # Load the trained model
 model = joblib.load("predict_model.pkl")
 
-# Load future environmental data
+# Load and preprocess future environmental data
 future_env_df = pd.read_csv("future_environmental_data.csv")
 future_env_df["timestamp"] = pd.to_datetime(future_env_df["timestamp"])
 future_env_df["month"] = future_env_df["timestamp"].dt.month
@@ -19,33 +19,45 @@ future_env_df["season"] = future_env_df["month"].apply(
 )
 future_env_df.drop(columns=["timestamp"], inplace=True)
 
-# Ensure all expected features exist
+# Handle missing features
 expected_features = model.feature_names_in_
 missing_features = set(expected_features) - set(future_env_df.columns)
 
 if missing_features:
     logging.warning(f"⚠️ Missing features in input data: {missing_features}")
 
-# Add missing features with default values (0)
 for feature in missing_features:
     future_env_df[feature] = 0
 
-# Reorder columns to match model input
 future_env_df = future_env_df[expected_features]
 
-# Initialize Flask app
-app = Flask(__name__)
-CORS(app)
-socketio = SocketIO(app, cors_allowed_origins="*")
+# Initialize FastAPI app
+app = FastAPI()
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 logging.basicConfig(level=logging.INFO)
 
+# Response model
+class FirePrediction(BaseModel):
+    latitude: float
+    longitude: float
+    fire_risk_probability: float
+    fire_risk: int
+
 def predict_fire_risk(row):
-    """Predict fire risk probability and return detailed info."""
-    input_features = row.values.reshape(1, -1)
-    fire_risk_prob = model.predict_proba(input_features)[0][1]
+     """Predict fire risk probability and return detailed info."""
+     input_features = row.values.reshape(1, -1)
+     fire_risk_prob = model.predict_proba(input_features)[0][1]
     
-    if fire_risk_prob > 0.01:  # Only process if probability is > 0.01
+     if fire_risk_prob > 0.01:  # Only process if probability is > 0.01
         return {
             "latitude": row["latitude"],
             "longitude": row["longitude"],
@@ -53,32 +65,35 @@ def predict_fire_risk(row):
             "fire_risk": 1 if fire_risk_prob > 0.5 else 0,
             "other_details": row.to_dict()  # Include all row details
         }
-    return None
+     return None
 
-# Flask API route
-@app.route("/get_fire_predictions", methods=["GET"])
-def get_fire_predictions():
-    """Returns fire risk predictions with probability > 0.01."""
-    predictions = [pred for pred in future_env_df.apply(predict_fire_risk, axis=1).tolist() if pred]
-    return jsonify(predictions)
+# REST API endpoint
+@app.get("/get_fire_predictions", response_model=list[FirePrediction])
+async def get_fire_predictions():
+    """Get all fire predictions at once"""
+    return future_env_df.apply(predict_fire_risk, axis=1).tolist()
 
-# Handle Socket.IO connection
-@socketio.on("connect")
-def handle_connect():
-    logging.info("Client connected")
+# WebSocket endpoint
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """Stream predictions one by one via WebSocket"""
+    await websocket.accept()
+    logging.info("Client connected via WebSocket")
+    
+    try:
+        while True:
+            # Simulate continuous stream by iterating through the DataFrame
+            for _, row in future_env_df.iterrows():
+                prediction = predict_fire_risk(row)
+                logging.info(f"Sending fire prediction: {prediction}")
+                if prediction:
+                    await websocket.send_json(prediction)
+                    await asyncio.sleep(5)  # Send every 5 seconds
+    except Exception as e:
+        logging.error(f"WebSocket error: {e}")
+    finally:
+        await websocket.close()
 
-@socketio.on("request_fire_predictions")
-def send_fire_predictions():
-    """Continuously sends fire predictions via Socket.IO if probability > 0.01."""
-    logging.info("Starting to send filtered fire predictions...")
-
-    for _, row in future_env_df.iterrows():
-        prediction = predict_fire_risk(row)
-        if prediction:
-            logging.info(f"Sending fire prediction: {prediction}")
-            socketio.emit("fire_predictions", prediction)
-            time.sleep(3)  # Simulate real-time data stream
-
-# Run Flask with Socket.IO
 if __name__ == "__main__":
-    socketio.run(app, host="0.0.0.0", port=5002, debug=True)
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=5002)

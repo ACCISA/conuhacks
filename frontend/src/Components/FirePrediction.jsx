@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef } from "react";
-import { io } from "socket.io-client";
 import { GoogleMap, LoadScript, Circle } from "@react-google-maps/api";
 
 const containerStyle = {
@@ -18,6 +17,7 @@ const transitionDuration = 1000;
 
 const FirePredictionMap = () => {
   const [firePredictions, setFirePredictions] = useState([]);
+  const [socket, setSocket] = useState(null);
   const [mapCenter, setMapCenter] = useState(defaultCenter);
   const [mapZoom, setMapZoom] = useState(defaultZoom);
   const mapRef = useRef(null);
@@ -27,24 +27,51 @@ const FirePredictionMap = () => {
     console.log("API Key Loaded:", apiKey);
   }, [apiKey]);
 
-  const initiateConnection = () => {
-    const newSocket = io("http://127.0.0.1:5002");
+  useEffect(() => {
+    // Initialize WebSocket connection
+    const ws = new WebSocket("ws://localhost:5002/ws"); // Fixed endpoint URL
+    
+    ws.onopen = () => {
+      console.log("✅ Connected to WebSocket");
+    };
 
-    newSocket.on("connect", () => {
-      console.log("Connected to Socket.IO");
-      newSocket.emit("request_fire_predictions");
-    });
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log("🔥 Received fire prediction:", data);
+        
+        // Update state using functional update to ensure fresh state
+        setFirePredictions(prev => [
+          ...prev,
+          {
+            latitude: data.latitude,
+            longitude: data.longitude,
+            fire_risk_probability: data.fire_risk_probability,
+            other_details: data.other_details
+          }
+        ]);
+      } catch (error) {
+        console.error("Error parsing WebSocket message:", error);
+      }
+    };
 
-    newSocket.on("fire_predictions", (data) => {
-      console.log("Received fire prediction:", data);
-      setFirePredictions((prevPredictions) => [data, ...prevPredictions]);
-    });
+    ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
 
-    newSocket.on("disconnect", () => {
-      console.log("Disconnected from Socket.IO");
-    });
-  };
+    ws.onclose = () => {
+      console.log("❌ Disconnected from WebSocket");
+    };
 
+    setSocket(ws);
+
+    // Cleanup function
+    return () => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+    };
+  }, []);
   const getCircleColor = (probability) => {
     if (probability > 0.75) return "#FF0000";
     if (probability > 0.5) return "#FFA500";
@@ -82,27 +109,12 @@ const FirePredictionMap = () => {
     }
   };
 
+
   return (
     <LoadScript googleMapsApiKey={apiKey}>
       <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
         <div style={{ position: "relative" }}>
-          <button
-            onClick={initiateConnection}
-            style={{
-              position: "absolute",
-              top: 10,
-              left: 10,
-              zIndex: 1000,
-              padding: "10px",
-              background: "blue",
-              color: "white",
-              border: "none",
-              cursor: "pointer",
-              borderRadius: "5px",
-            }}
-          >
-            Connect & Get Fire Predictions
-          </button>
+       
           <GoogleMap
             mapContainerStyle={containerStyle}
             center={mapCenter}
@@ -154,6 +166,7 @@ const FirePredictionMap = () => {
                 </tr>
               ) : (
                 firePredictions.map((fire, index) => {
+                  console.log("Fire"+fire)
                   const details = fire.other_details || {}; // Ensure other_details exists
                   return (
                     <tr
@@ -162,8 +175,12 @@ const FirePredictionMap = () => {
                       onClick={() => handleLocationClick(fire)}
                     >
                       <td style={{ padding: "5px", borderBottom: "1px solid #333" }}>{new Date().toLocaleTimeString()}</td>
-                      <td style={{ padding: "5px", borderBottom: "1px solid #333" }}>{fire.latitude.toFixed(4)}</td>
-                      <td style={{ padding: "5px", borderBottom: "1px solid #333" }}>{fire.longitude.toFixed(4)}</td>
+                      <td style={{ padding: "5px", borderBottom: "1px solid #333" }}>
+                      {fire.latitude ? fire.latitude.toFixed(4) : "N/A"}
+                      </td>
+                      <td style={{ padding: "5px", borderBottom: "1px solid #333" }}>
+                      {fire.longitude ? fire.longitude.toFixed(4) : "N/A"}
+                      </td>
                       <td style={{ padding: "5px", borderBottom: "1px solid #333", color: getCircleColor(fire.fire_risk_probability) }}>
                         {Math.round(fire.fire_risk_probability * 100)}%
                       </td>
