@@ -5,7 +5,7 @@ import redis
 import json
 import threading
 
-from queue_handler import add_task_to_queue, start_listener
+from allocator import Allocator
 
 # Set up Redis connection
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
@@ -17,12 +17,13 @@ speed_factor = 100000
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+allocator = Allocator() 
 
 def task_handler(task_data):
     task = json.loads(task_data)
     print(task)
     logging.info(f"Processing task: {task['task_id']}, Priority: {task['priority']}, Timestamp: {task['timestamp']}")
-
+    allocator.allocate_task(task)
 
 def listen_to_queue():
     while True:
