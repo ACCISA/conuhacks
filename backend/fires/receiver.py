@@ -1,5 +1,5 @@
-from priorityQueue import PriorityQueue
-from units import Units
+from fires.priorityQueue import PriorityQueue
+from fires.units import Units
 
 class Receiver:
     def __init__(self):
@@ -27,6 +27,14 @@ class Receiver:
                 self.deploying.append(unit)
         priority = data['priority']
         self.priority_queue.enqueue(data, priority)
+
+    def check_deploying(self, time):
+        while(self.deploying[0]<=time):
+            temp=self.deploying.pop(0)
+            temp.assigned_to['points']+=temp.points
+    
+    def check_fire(self, fire):
+        pass
     
     def get_next(self):
         return self.priority_queue.dequeue()
