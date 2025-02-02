@@ -8,7 +8,7 @@ import joblib
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-
+from database.fires_db import fetch_past_fires
 
 # Load the trained model
 model = joblib.load("predict_model.pkl")
@@ -89,6 +89,11 @@ async def get_fire_predictions():
     """Get all fire predictions at once"""
     predictions = future_env_df.apply(predict_fire_risk, axis=1).dropna().tolist()
     return predictions
+
+@app.get("/get_past_fires")
+async def get_past_fires():
+    return fetch_past_fires()
+
 
 # WebSocket endpoint
 @app.websocket("/ws")

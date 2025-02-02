@@ -3,37 +3,86 @@ import MapWithMultipleFires from './Map';
 import PieChart from './PieChart';
 import LineGraph from './LineGraph';
 import FirePrediction from './FirePrediction';
+import PastFireMap from './PastFireMap';
+
+import axios from 'axios';
+
+// Map from backend resource keys -> your resource names
+const RESOURCE_KEY_MAP = {
+  smoke_jumpers: "Smoke Jumpers",
+  fire_engines: "Fire Engines",
+  helicopters: "Helicopters",
+  tanker_planes: "Tanker Planes",
+  ground_crews: "Ground Crews"
+};
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [fireInfo, setFireInfo] = useState([]);
   const [socket, setSocket] = useState(null);
+
+  // If you need this for analytics
   const [fireData, setfireData] = useState([]);
 
-  // -------------------------------------
-  // Fake Resources (unchanged)
-  // -------------------------------------
-  const [resources] = useState([
-    { name: "Smoke Jumpers", total: 5, inUse: 2, cost: 5000, severity: "Medium" },
-    { name: "Fire Engines", total: 10, inUse: 8, cost: 2000, severity: "Low" },
-    { name: "Helicopters", total: 3, inUse: 1, cost: 8000, severity: "Medium,High" },
-    { name: "Tanker Planes", total: 2, inUse: 1, cost: 15000, severity: "High,Medium" },
-    { name: "Ground Crews", total: 8, inUse: 6, cost: 3000, severity: "Low" },
+  // ----------------------------------------------------------
+  // Global resources (all start with 0 inUse).
+  // ----------------------------------------------------------
+  const [resources, setResources] = useState([
+    {
+      name: "Smoke Jumpers",
+      total: 5,
+      inUse: 0,
+      cost: 5000,
+      severity: "Medium",
+      deploymentTime: "30 minutes"
+    },
+    {
+      name: "Fire Engines",
+      total: 10,
+      inUse: 0,
+      cost: 2000,
+      severity: "Low",
+      deploymentTime: "1 hour"
+    },
+    {
+      name: "Helicopters",
+      total: 3,
+      inUse: 0,
+      cost: 8000,
+      severity: "Medium,High",
+      deploymentTime: "45 minutes"
+    },
+    {
+      name: "Tanker Planes",
+      total: 2,
+      inUse: 0,
+      cost: 15000,
+      severity: "High,Medium",
+      deploymentTime: "2 hours"
+    },
+    {
+      name: "Ground Crews",
+      total: 8,
+      inUse: 0,
+      cost: 3000,
+      severity: "Low",
+      deploymentTime: "1.5 hours"
+    },
   ]);
 
-  // By default, all resources are shown
-  const [filteredResources, setFilteredResources] = useState(resources);
+  // The currently “selected” fire from the map
+  const [selectedFire, setSelectedFire] = useState(null);
 
-  // Example metrics (unchanged)
+  // Example metrics
   const [metrics, setMetrics] = useState([
     { id: 1, name: 'Response Time', value: '5 mins' },
     { id: 2, name: 'Water Usage', value: '2000 L' },
     { id: 3, name: 'Personnel Deployed', value: '50' },
   ]);
 
-  // -------------------------------------
+  // ----------------------------------------------------------
   // Resource usage color & status
-  // -------------------------------------
+  // ----------------------------------------------------------
   const getResourceStatus = (inUse, total) => {
     if (total === 0) {
       return { status: 'N/A', colorClass: 'text-gray-400' };
@@ -50,44 +99,50 @@ const Dashboard = () => {
     }
   };
 
-  // -------------------------------------
-  // Filter resources by severity
-  // -------------------------------------
-  const handleFireClick = (severity) => {
-    setFilteredResources(resources.filter((res) => res.severity.includes(severity)));
+  // ----------------------------------------------------------
+  // For each resource from the server, increment usage globally.
+  // ----------------------------------------------------------
+  const allocateResources = (serverResources) => {
+    setResources((prev) => {
+      const newRes = [...prev];
+      serverResources.forEach((key) => {
+        const mappedName = RESOURCE_KEY_MAP[key];
+        const idx = newRes.findIndex((r) => r.name === mappedName);
+        if (idx >= 0) {
+          const item = { ...newRes[idx] };
+          item.inUse = Math.min(item.inUse + 1, item.total);
+          newRes[idx] = item;
+        }
+      });
+      return newRes;
+    });
   };
 
-  // -------------------------------------
-  // Reset resource filter
-  // -------------------------------------
-  const handleClose = () => {
-    setFilteredResources(resources);
+  // ----------------------------------------------------------
+  // Calculate cost for allocated resources
+  // ----------------------------------------------------------
+  const calculateCost = (serverResources) => {
+    let totalCost = 0;
+    serverResources.forEach((key) => {
+      const mappedName = RESOURCE_KEY_MAP[key];
+      const resObj = resources.find((r) => r.name === mappedName);
+      if (resObj) {
+        totalCost += resObj.cost;
+      }
+    });
+    return totalCost;
   };
 
-  // -------------------------------------
-  // Tab handling
-  // -------------------------------------
-  const handleTabClick = (tab) => {
-    if (tab === 'dashboard') {
-      // Force reload for demonstration
-      window.location.reload();
-    } else {
-      setActiveTab(tab);
-    }
+  // ----------------------------------------------------------
+  // Called by the map: user clicked on a polygon / alert => set selectedFire
+  // ----------------------------------------------------------
+  const handleFireSelected = (fire) => {
+    setSelectedFire(fire);
   };
 
-  // -------------------------------------
-  // Example: handle metric changes
-  // -------------------------------------
-  const handleMetricChange = (id, newValue) => {
-    setMetrics((prev) =>
-      prev.map((metric) => (metric.id === id ? { ...metric, value: newValue } : metric))
-    );
-  };
-
-  // -------------------------------------
-  // WebSocket to receive new fires
-  // -------------------------------------
+  // ----------------------------------------------------------
+  // WebSocket logic: if fire has status=allocated, allocate resources globally
+  // ----------------------------------------------------------
   useEffect(() => {
     const taskSocket = new WebSocket("ws://localhost:5002/ws/tasks");
 
@@ -101,24 +156,31 @@ const Dashboard = () => {
       if (Array.isArray(taskData)) {
         // If array of tasks
         setFireInfo((prevFireInfo) => {
-          const newFires = taskData.map((task) => ({
-            fire_start_time: task.fire_start_time,
-            location: task.location,
-            severity: task.severity,
-            status:task.status,
-            priority: task.priority,
-            resources:task?.resources
-          }));
+          const newFires = taskData.map((task) => {
+            let total_cost = 0;
+            if (task.status === "allocated" && task.resources?.length > 0) {
+              total_cost = calculateCost(task.resources);
+              allocateResources(task.resources);
+            }
+            return {
+              ...task,
+              total_cost
+            };
+          });
           return [...prevFireInfo, ...newFires];
         });
       } else {
         // Single new task
+        let total_cost = 0;
+        if (taskData.status === "allocated" && taskData.resources?.length > 0) {
+          total_cost = calculateCost(taskData.resources);
+          allocateResources(taskData.resources);
+        }
         setFireInfo((prevFireInfo) => [
           ...prevFireInfo,
           {
-            fire_start_time: taskData.fire_start_time,
-            location: taskData.location,
-            severity: taskData.severity,
+            ...taskData,
+            total_cost
           },
         ]);
       }
@@ -139,28 +201,62 @@ const Dashboard = () => {
         taskSocket.close();
       }
     };
-  }, []);
+  }, [resources]); // keep resources in dependency
 
-  const handleLocationClick = (fire) => {
-    console.log("move map")
-  }
-
-
-  const getCircleColor = (serverity) => {
-    if (serverity == 3) return "#FF0000";
-    if (serverity == 2) return "#FFA500";
-    return "#FFFF00";
-  };
-  // -------------------------------------
-  // Log whenever fireInfo changes
-  // -------------------------------------
+  // Debug log
   useEffect(() => {
     console.log("fireInfo updated:", fireInfo);
   }, [fireInfo]);
 
-  // -------------------------------------
-  // Render
-  // -------------------------------------
+  // ----------------------------------------------------------
+  // Tab handling
+  // ----------------------------------------------------------
+  const handleTabClick = (tab) => {
+    if (tab === 'dashboard') {
+      window.location.reload();
+    } else {
+      setActiveTab(tab);
+    }
+  };
+
+  // ----------------------------------------------------------
+  // Analytics table stuff
+  // ----------------------------------------------------------
+  const handleLocationClick = (fire) => {
+    console.log("move map", fire);
+  };
+
+  const getCircleColor = (prob) => {
+    if (prob === 3) return "#FF0000";
+    if (prob === 2) return "#FFA500";
+    return "#FFFF00";
+  };
+
+  // We do not filter the main resource list by severity anymore.  
+  // Instead, show the global usage plus how many are used by the selected fire.
+  const getResourceUsageByFire = (fire, resourceName) => {
+    // If no fire selected or no resources allocated
+    if (!fire?.resources?.length) return 0;
+
+    // Count how many times resourceName's key appears
+    // e.g. resourceName = "Tanker Planes", key => "tanker_planes"
+    // We'll invert the map first:
+    const resourceKey = Object.keys(RESOURCE_KEY_MAP)
+      .find((k) => RESOURCE_KEY_MAP[k] === resourceName);
+
+    if (!resourceKey) return 0;
+
+    // Count occurrences
+    return fire.resources.filter((r) => r === resourceKey).length;
+  };
+
+  useEffect(() => {
+    axios.get('http://localhost:5002/get_past_fires')
+    .then((res) => {
+      setfireData(res.data)
+    })
+  },[])
+
   return (
     <div className="min-h-screen bg-gray-900 text-white p-4">
       {/* Tabs */}
@@ -180,16 +276,18 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* Dashboard content */}
       {activeTab === 'dashboard' && (
         <div className="flex flex-col gap-4">
           <div className="flex flex-col lg:flex-row gap-4">
-            {/* Left Panel: Fire Department Resources */}
+            {/* Left Panel: ALWAYS show all resources. 
+                Also show how many are used by the selected fire. */}
             <div className="lg:w-1/5 bg-gray-800 p-4 rounded-xl shadow-xl max-h-[665px] h-[665px] overflow-y-auto">
               <h2 className="text-xl font-semibold mb-2">Fire Department Resources</h2>
               <div className="space-y-4">
-                {filteredResources.map((resource, index) => {
+                {resources.map((resource, index) => {
                   const { status, colorClass } = getResourceStatus(resource.inUse, resource.total);
+                  // Find usage by the selected fire if any
+                  const usageForThisFire = getResourceUsageByFire(selectedFire, resource.name);
 
                   return (
                     <div key={index} className="bg-gray-700 p-3 rounded-md shadow-md">
@@ -198,15 +296,26 @@ const Dashboard = () => {
                       </h3>
                       <div className="flex justify-between text-sm">
                         <p>Total: {resource.total}</p>
-                        <p>In Use: {resource.inUse}</p>
+                        <p>Global In Use: {resource.inUse}</p>
                       </div>
                       <div className="flex justify-between text-sm">
                         <p>Cost: ${resource.cost}</p>
                         <p>Severity: {resource.severity}</p>
                       </div>
+                      {/* Status color based on global usage */}
                       <p className={`mt-1 text-sm font-semibold ${colorClass}`}>
                         Status: {status}
                       </p>
+                      <p className="text-xs text-gray-300 mt-1">
+                        Deployment Time: {resource.deploymentTime}
+                      </p>
+
+                      {/* Show usage for the selected fire if non-zero */}
+                      {selectedFire && usageForThisFire > 0 && (
+                        <p className="mt-2 text-sm text-blue-300">
+                          Used by this Fire: {usageForThisFire}
+                        </p>
+                      )}
                     </div>
                   );
                 })}
@@ -217,9 +326,8 @@ const Dashboard = () => {
             <div className="lg:w-4/5 bg-gray-800 p-4 rounded-xl shadow-xl">
               <h2 className="text-xl font-semibold mb-2">Fire Incident Map</h2>
               <MapWithMultipleFires
-                onFireClick={handleFireClick}
-                onClose={handleClose}
                 fireInfo={fireInfo}
+                onFireSelected={handleFireSelected}
               />
             </div>
           </div>
@@ -251,103 +359,122 @@ const Dashboard = () => {
         
       )}
 
-      {/* Analytics Tab */}
-      {activeTab === 'analytics' && (
-        <div className=''>
-          <div className="flex flex-row w-full justify-around mb-4">
-            <div className='bg-gray-800 p-4 flex justify-center w-full rounded-xl shadow-xl m-2'>
-              <iframe
-              className='w-full'
-                src="http://localhost:8501?embed=true&component=metric_total&embed_options=disable_scrolling"
-                style={{
-                  border: 'none',
-                  height: '20vh'
-                }}
-              />
-            </div>
-            <div className='bg-gray-800 p-4 w-full rounded-xl shadow-xl m-2'>
-              <iframe
-                className='w-full'  
-                src="http://localhost:8501?embed=true&component=metric_support&embed_options=disable_scrolling"
-                style={{
-                  border: 'none',
-                  height: '20vh'
-                }}
-              />
-            </div>
-            <div className='bg-gray-800 p-4 w-full rounded-xl shadow-xl m-2'>
-              <iframe
-                className='w-full'  
-                src="http://localhost:8501?embed=true&component=metric_signup&embed_options=disable_scrolling"
-                style={{
-                  border: 'none',
-                  height: '20vh'
-                }}
-              />
-            </div>
-            <div className='bg-gray-800 p-4 w-full rounded-xl shadow-xl m-2'>
-              <iframe
-                className='w-full'  
-                src="http://localhost:8501?embed=true&component=metric_resource&embed_options=disable_scrolling"
-                style={{
-                  border: 'none',
-                  height: '20vh'
-                }}
-              />
-            </div>
-            
-          </div>
-            <div className="bg-gray-800 p-4 w-full rounded-xl shadow-xl">
-              <iframe
-                src="http://localhost:8501?embed=true&component=metric_graph"
-                style={{
-                  border: 'none',
-                  width: '100%',
-                  height: '100vh'
-                }}
-              />
-            </div>
-            <div>
-              <table style={{ width: "100%", borderCollapse: "collapse", color: "white", fontSize: "12px" }}>
-              <thead>
-                <tr style={{ background: "#111", textAlign: "left" }}>
-                  <th>Timestamp</th><th>Latitude</th><th>Longitude</th><th>Probability</th>
-                  <th>Temp (°C)</th><th>Humidity (%)</th><th>Wind (km/h)</th>
-                  <th>Precip (mm)</th><th>Vegetation Index</th><th>Human Activity</th>
-                </tr>
-              </thead>
-              <tbody>
-                {fireData.length === 0 ? (
-                  <tr>
-                    <td colSpan="10" style={{ textAlign: "center", padding: "10px", color: "#999" }}>
-                      [INFO] Waiting for db data...
+{activeTab === 'analytics' && (
+  <div className=''>
+    <div className="flex flex-row w-full justify-around mb-4">
+      <div className='bg-gray-800 p-4 flex justify-center w-full rounded-xl shadow-xl m-2'>
+        <iframe
+          className='w-full'
+          src="http://localhost:8501?embed=true&component=metric_total&embed_options=disable_scrolling"
+          style={{
+            border: 'none',
+            height: '20vh'
+          }}
+        />
+      </div>
+      <div className='bg-gray-800 p-4 w-full rounded-xl shadow-xl m-2'>
+        <iframe
+          className='w-full'  
+          src="http://localhost:8501?embed=true&component=metric_support&embed_options=disable_scrolling"
+          style={{
+            border: 'none',
+            height: '20vh'
+          }}
+        />
+      </div>
+      <div className='bg-gray-800 p-4 w-full rounded-xl shadow-xl m-2'>
+        <iframe
+          className='w-full'  
+          src="http://localhost:8501?embed=true&component=metric_signup&embed_options=disable_scrolling"
+          style={{
+            border: 'none',
+            height: '20vh'
+          }}
+        />
+      </div>
+      <div className='bg-gray-800 p-4 w-full rounded-xl shadow-xl m-2'>
+        <iframe
+          className='w-full'  
+          src="http://localhost:8501?embed=true&component=metric_resource&embed_options=disable_scrolling"
+          style={{
+            border: 'none',
+            height: '20vh'
+          }}
+        />
+      </div>
+    </div>
+
+    <div className="flex flex-row w-full space-x-4 mb-4">
+
+      <div className="bg-gray-800 p-4 w-2/3 rounded-xl shadow-xl">
+        <h2 className="text-xl font-semibold mb-2">Fire Data Table</h2>
+        <table style={{ width: "100%", borderCollapse: "collapse", color: "white", fontSize: "12px" }}>
+          <thead>
+            <tr style={{ background: "#111", textAlign: "left" }}>
+              <th>Timestamp</th>
+              <th>Fire Start Time</th>
+              <th>Location</th>
+              <th>Severity</th>
+              <th>Resources</th>
+              <th>Cost ($)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {fireData.length === 0 ? (
+              <tr>
+                <td colSpan="5" style={{ textAlign: "center", padding: "10px", color: "#999" }}>
+                  [INFO] Waiting for db data...
+                </td>
+              </tr>
+            ) : (
+              fireData.map((fire, index) => {
+                const details = fire.other_details || {};
+                return (
+                  <tr 
+                    key={index} 
+                    style={{ background: index % 2 === 0 ? "#111" : "#222", cursor: "pointer" }} 
+                    onClick={() => handleLocationClick(fire)}
+                  >
+                    <td>{fire.timestamp}</td>
+                    <td>{details.fire_start_time ?? "N/A"}</td>
+                    <td>{fire.latitude.toFixed(4)},{fire.longitude.toFixed(4)}</td>
+                    <td 
+                      style={{
+                        color: fire.severity === "high" ? "red" : fire.severity === "medium" ? "orange" : "green",
+                        fontWeight: "bold"
+                      }}
+                    >
+                      {fire.severity.charAt(0).toUpperCase() + fire.severity.slice(1)}
                     </td>
+                    <td>{details.resources ? `$${details.resources.toLocaleString()}` : "N/A"}</td>
+                    <td>{details.cost ? `$${details.cost.toLocaleString()}` : "N/A"}</td>
                   </tr>
-                ) : (
-                  fireData.map((fire, index) => {
-                    const details = fire.other_details || {};
-                    return (
-                      <tr key={index} style={{ background: index % 2 === 0 ? "#111" : "#222", cursor: "pointer" }} onClick={() => handleLocationClick(fire)}>
-                        <td>{fire.timestamp}</td>
-                        <td>{fire.latitude.toFixed(4)}</td>
-                        <td>{fire.longitude.toFixed(4)}</td>
-                        <td style={{ color: getCircleColor(fire.fire_risk_probability) }}>{Math.round(fire.fire_risk_probability * 100)}%</td>
-                        <td>{details.temperature ?? "N/A"}°C</td>
-                        <td>{details.humidity ?? "N/A"}%</td>
-                        <td>{details.wind_speed ?? "N/A"} km/h</td>
-                        <td>{details.precipitation ?? "N/A"} mm</td>
-                        <td>{details.vegetation_index ?? "N/A"}</td>
-                        <td>{details.human_activity_index ?? "N/A"}</td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-            </div>
-        </div>
-        
-      )}
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="bg-gray-800 p-4 w-1/3 rounded-xl shadow-xl">
+        <h2 className="text-xl font-semibold mb-2">Past Fire Map</h2>
+        <PastFireMap />
+      </div>
+    </div>
+
+    <div className="bg-gray-800 p-4 w-full rounded-xl shadow-xl">
+      <iframe
+        src="http://localhost:8501?embed=true&component=metric_graph"
+        style={{
+          border: 'none',
+          width: '100%',
+          height: '100vh'
+        }}
+      />
+    </div>
+  </div>
+)}
+
 
       {activeTab === 'metrics' && (
         <div className="flex space-x-4">
@@ -372,7 +499,6 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Prediction Tab */}
       {activeTab === 'prediction' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="col-span-3 bg-gray-800 p-4 rounded-xl shadow-xl">
