@@ -8,6 +8,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [fireInfo, setfireInfo] = useState([]);
   const [socket, setSocket] = useState(null);
+  const [fireData, setfireData] = useState([]);
 
   // We keep "severity" for filtering AND add usage-based status
 
@@ -114,6 +115,16 @@ const Dashboard = () => {
 
   }, []);
   
+  const handleLocationClick = (fire) => {
+    console.log("move map")
+  }
+
+
+  const getCircleColor = (serverity) => {
+    if (serverity == 3) return "#FF0000";
+    if (serverity == 2) return "#FFA500";
+    return "#FFFF00";
+  };
 
 
   return (
@@ -196,16 +207,100 @@ const Dashboard = () => {
       )}
 
       {activeTab === 'analytics' && (
-        <div className="bg-gray-800 p-4 rounded-xl shadow-xl">
-          <iframe
-            src="http://localhost:8501?embed=true&component=analytics"
-            style={{
-              border: 'none',
-              width: '100%',
-              height: '100vh'
-            }}
-          />
+        <div className=''>
+          <div className="flex flex-row w-full justify-around mb-4">
+            <div className='bg-gray-800 p-4 flex justify-center w-full rounded-xl shadow-xl m-2'>
+              <iframe
+              className='w-full'
+                src="http://localhost:8501?embed=true&component=metric_total&embed_options=disable_scrolling"
+                style={{
+                  border: 'none',
+                  height: '20vh'
+                }}
+              />
+            </div>
+            <div className='bg-gray-800 p-4 w-full rounded-xl shadow-xl m-2'>
+              <iframe
+                className='w-full'  
+                src="http://localhost:8501?embed=true&component=metric_support&embed_options=disable_scrolling"
+                style={{
+                  border: 'none',
+                  height: '20vh'
+                }}
+              />
+            </div>
+            <div className='bg-gray-800 p-4 w-full rounded-xl shadow-xl m-2'>
+              <iframe
+                className='w-full'  
+                src="http://localhost:8501?embed=true&component=metric_signup&embed_options=disable_scrolling"
+                style={{
+                  border: 'none',
+                  height: '20vh'
+                }}
+              />
+            </div>
+            <div className='bg-gray-800 p-4 w-full rounded-xl shadow-xl m-2'>
+              <iframe
+                className='w-full'  
+                src="http://localhost:8501?embed=true&component=metric_resource&embed_options=disable_scrolling"
+                style={{
+                  border: 'none',
+                  height: '20vh'
+                }}
+              />
+            </div>
+            
+          </div>
+            <div className="bg-gray-800 p-4 w-full rounded-xl shadow-xl">
+              <iframe
+                src="http://localhost:8501?embed=true&component=metric_graph"
+                style={{
+                  border: 'none',
+                  width: '100%',
+                  height: '100vh'
+                }}
+              />
+            </div>
+            <div>
+              <table style={{ width: "100%", borderCollapse: "collapse", color: "white", fontSize: "12px" }}>
+              <thead>
+                <tr style={{ background: "#111", textAlign: "left" }}>
+                  <th>Timestamp</th><th>Latitude</th><th>Longitude</th><th>Probability</th>
+                  <th>Temp (°C)</th><th>Humidity (%)</th><th>Wind (km/h)</th>
+                  <th>Precip (mm)</th><th>Vegetation Index</th><th>Human Activity</th>
+                </tr>
+              </thead>
+              <tbody>
+                {fireData.length === 0 ? (
+                  <tr>
+                    <td colSpan="10" style={{ textAlign: "center", padding: "10px", color: "#999" }}>
+                      [INFO] Waiting for db data...
+                    </td>
+                  </tr>
+                ) : (
+                  fireData.map((fire, index) => {
+                    const details = fire.other_details || {};
+                    return (
+                      <tr key={index} style={{ background: index % 2 === 0 ? "#111" : "#222", cursor: "pointer" }} onClick={() => handleLocationClick(fire)}>
+                        <td>{fire.timestamp}</td>
+                        <td>{fire.latitude.toFixed(4)}</td>
+                        <td>{fire.longitude.toFixed(4)}</td>
+                        <td style={{ color: getCircleColor(fire.fire_risk_probability) }}>{Math.round(fire.fire_risk_probability * 100)}%</td>
+                        <td>{details.temperature ?? "N/A"}°C</td>
+                        <td>{details.humidity ?? "N/A"}%</td>
+                        <td>{details.wind_speed ?? "N/A"} km/h</td>
+                        <td>{details.precipitation ?? "N/A"} mm</td>
+                        <td>{details.vegetation_index ?? "N/A"}</td>
+                        <td>{details.human_activity_index ?? "N/A"}</td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+            </div>
         </div>
+        
       )}
 
       {activeTab === 'metrics' && (

@@ -53,10 +53,22 @@ def create_metric(title, value, delta, color):
         </div>
     """, unsafe_allow_html=True)
 
-def analytics():
-    logging.info("Analytics page accessed")
+def metric_total():
+    create_metric("Total Fires", "512", "+15", "#FF6B6B")
 
-    np.random.seed(42)
+def metric_support():
+    create_metric("Support Calls", "389", "-8", "#FFD93D")
+    
+def metric_signup():
+    create_metric("Sign Ups", "742", "+27", "#6BCB77")
+
+def metric_resource():
+    create_metric("Resource Deployment", "72%", "+5%", "#1E90FF")
+
+
+def metric_graph():
+    st.markdown("Gain valuable insights into fire incidents, resource allocations, and cost management.")
+
     resources = ['Smoke Jumpers', 'Fire Engines', 'Helicopters', 'Tanker Planes', 'Ground Crews', 'Rescue Boats', 'Drones']
     cost_data = {
         'Resource': np.random.choice(resources, 500),
@@ -66,63 +78,7 @@ def analytics():
         'Incident ID': [f'INC{str(i).zfill(4)}' for i in range(1, 501)]
     }
     cost_df = pd.DataFrame(cost_data)
-
-    st.markdown("Gain valuable insights into fire incidents, resource allocations, and cost management.")
-
-    # Metrics Row
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        create_metric("Total Fires", "512", "+15", "#FF6B6B")
-    with col2:
-        create_metric("Support Calls", "389", "-8", "#FFD93D")
-    with col3:
-        create_metric("Sign Ups", "742", "+27", "#6BCB77")
-    with col4:
-        create_metric("Resource Deployment", "72%", "+5%", "#1E90FF")
-
     st.markdown("<div style='margin: 20px 0;'></div>", unsafe_allow_html=True)
 
-    # Wider Graph Section
     fig1 = create_bar_chart(cost_df, 'Resource', 'Cost', '💰 Resource Costs', '#1E90FF')
     st.pyplot(fig1)
-
-    st.markdown("### 🌍 Incident Locations Map")
-    selected_resource = st.selectbox("Filter by Resource", options=cost_df['Resource'].unique())
-    filtered_df = cost_df[cost_df['Resource'] == selected_resource]
-
-    selected_row = st.selectbox("Zoom to Incident", filtered_df['Incident ID'].unique())
-    selected_data = filtered_df[filtered_df['Incident ID'] == selected_row].iloc[0]
-
-    view_state = pdk.ViewState(
-        latitude=selected_data['Latitude'],
-        longitude=selected_data['Longitude'],
-        zoom=10,
-        pitch=0
-    )
-
-    layer = pdk.Layer(
-        'ScatterplotLayer',
-        data=filtered_df,
-        get_position='[Longitude, Latitude]',
-        get_color='[255, 69, 0, 180]',
-        get_radius=20000,
-    )
-
-    r = pdk.Deck(
-        layers=[layer],
-        initial_view_state=view_state,
-        tooltip={"text": "{Resource}: ${Cost}, Incident ID: {Incident ID}"}
-    )
-
-    st.pydeck_chart(r)
-
-    # Full-width Data Table
-    st.markdown("### 📊 Resource Cost & Usage Table")
-    st.dataframe(filtered_df, height=400)
-
-    if st.button('📥 Download as CSV'):
-        csv = filtered_df.to_csv(index=False)
-        st.download_button(label="Download CSV", data=csv, file_name='fire_data.csv', mime='text/csv')
-
-if __name__ == "__main__":
-    analytics()
