@@ -6,6 +6,9 @@ import FirePrediction from './FirePrediction';
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [tasks, setTasks] = useState('');
+  const [socket, setSocket] = useState(null);
+
   const [resources, setResources] = useState([
     { name: "Smoke Jumpers", total: 5, inUse: 2, cost: 5000, severity: "Medium" },
     { name: "Fire Engines", total: 10, inUse: 8, cost: 2000, severity: "Low" },
@@ -46,6 +49,41 @@ const Dashboard = () => {
   const handleMetricChange = (id, newValue) => {
     setMetrics(metrics.map(metric => metric.id === id ? { ...metric, value: newValue } : metric));
   };
+
+  useEffect(() => {
+    const taskSocket = new WebSocket("ws://localhost:5002/ws/tasks");
+
+    taskSocket.onopen = () => {
+      console.log("✅ Connected to WebSocket");
+    };
+    
+  
+    taskSocket.onmessage = (event) => {
+      const taskData = JSON.parse(event.data);
+      console.log("New Task:", taskData);
+      setTasks((prev) => [...prev, taskData]);
+    };
+
+    taskSocket.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+
+    taskSocket.onclose = () => {
+      console.log("❌ Disconnected from WebSocket");
+    };
+
+    setSocket(taskSocket);
+
+    // Cleanup function
+    return () => {
+      if (taskSocket.readyState === WebSocket.OPEN) {
+        taskSocket.close();
+      }
+    };
+
+  }, []);
+  
+
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-4">
