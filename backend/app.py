@@ -26,4 +26,3 @@ else:
     logging.info("Executing: " + str(params.component))
 
     pages[params.component]()
-

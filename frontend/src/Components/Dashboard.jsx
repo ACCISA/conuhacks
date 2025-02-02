@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import MapWithMultipleFires from './Map';
 import PieChart from './PieChart';
 import LineGraph from './LineGraph';
+import FirePrediction from './FirePrediction';
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -49,7 +50,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-4">
       <div className="flex space-x-8 border-b border-gray-700 mb-4">
-        {['dashboard', 'csv', 'analytics', 'metrics', 'prediction'].map((tab) => (
+        {['dashboard','prediction', 'csv', 'analytics', 'metrics', ].map((tab) => (
           <div
             key={tab}
             className={`pb-2 cursor-pointer ${activeTab === tab ? 'border-b-4 border-blue-500 text-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
@@ -95,9 +96,19 @@ const Dashboard = () => {
         </div>
       )}
 
+      {activeTab === 'prediction' && (
+
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="col-span-3 bg-gray-800 p-4 rounded-xl shadow-xl">
+            <FirePrediction />
+          </div>
+        </div>
+      )}
+
       {activeTab === 'csv' && (
         <div className="bg-gray-800 rounded-xl shadow-xl min-h-screen">
-          <iframe 
+          <iframe
             src='http://localhost:8501?embed=true&component=csv_processing'
             style={{ border: 'none', width: '100%', height: '100vh' }}
           />
@@ -117,39 +128,39 @@ const Dashboard = () => {
         <div className="flex space-x-4">
           <div className="bg-gray-800 p-4 rounded-xl shadow-xl w-1/2">
             <div className="space-y-4">
-              <iframe 
-                src="http://localhost:8501?embed=true&component=resource_update_units" 
+              <iframe
+                src="http://localhost:8501?embed=true&component=resource_update_units"
                 style={{
                   border: 'none',
                   width: '100%',
                   height: '100vh'
                 }}
               />
-            </div>          
+            </div>
           </div>
           <div className="bg-gray-800 p-4 rounded-xl shadow-xl w-1/2">
             <div className="space-y-4">
-              <iframe 
-                src="http://localhost:8501?embed=true&component=resource_update_cost" 
+              <iframe
+                src="http://localhost:8501?embed=true&component=resource_update_cost"
                 style={{
                   border: 'none',
                   width: '100%',
                   height: '100vh'
                 }}
               />
-            </div>          
+            </div>
           </div>
           <div className="bg-gray-800 p-4 rounded-xl shadow-xl w-1/2">
             <div className="space-y-4">
-              <iframe 
-                src="http://localhost:8501?embed=true&component=resource_update_depl" 
+              <iframe
+                src="http://localhost:8501?embed=true&component=resource_update_depl"
                 style={{
                   border: 'none',
                   width: '100%',
                   height: '100vh'
                 }}
               />
-            </div>          
+            </div>
           </div>
         </div>
       )}

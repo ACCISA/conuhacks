@@ -1,5 +1,11 @@
 streamlit
 fastapi
-pandas
+pandasx
 matplotlib
 pymongo
+flask
+joblib
+flask_cors
+flask_socketio
+scikit-learn
+
