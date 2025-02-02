@@ -14,7 +14,8 @@ from allocator import Allocator
 from deployment import RedisDeploymentQueue
 from resources import reset_resources, pull_resources
 from fires import log_failed_response
-# Set up Redis connection
+from event import add_to_main_queue, update_fire_by_id
+
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
 queue_key = "priority_queue2"
 
@@ -44,8 +45,13 @@ def task_handler(task_data):
         task_data['num_fires'] = deployment.deployed
         task_data['cur_fires'] = deployment.cur_fires
         log_failed_response(task_data)
+        update_fire_by_id(task['task_id'],{'status':'unllocated'})
         return
-
+    resources_used = []
+    for resource in resource_usage[1]:
+        for type in resource.keys():
+            resources_used.append(type)
+    update_fire_by_id(task['task_id'],{'status':'allocated','resources':resources_used})
     deployment.deploy(task,resource_usage,ttl)
 
 
@@ -75,8 +81,8 @@ def process_entries(df, entries):
             time_adjust = diff / speed_factor
             time.sleep(time_adjust)  # Simulate the real-time data insertion delay
             entry['timestamp'] = str(entry['timestamp'])
-            add_task_to_queue(entry, entry['priority'], time_adjust)  # Add task to Redis priority queue
-
+            add_task_to_queue(entry, entry['priority'], time_adjust)  
+            add_to_main_queue(entry) #websocket should see a new fire popup
 
 def start_simulation():
     """Reads wildfire data and starts adding tasks to Redis."""

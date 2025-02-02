@@ -1,17 +1,40 @@
 import redis
+import json
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 redis_client = redis.StrictRedis(host='localhost', port=6379, db=0)
 
-queue_name = 'main_event_queue'
+queue_name = 'main_queue'
 
-def add_to_queue(item):
-    redis_client.lpush(queue_name, item)
-    print(f"Added {item} to the queue")
+redis_client.delete(queue_name)
 
-def remove_from_queue():
-    item = redis_client.rpop(queue_name) 
-    if item:
-        print(f"Removed {item.decode('utf-8')} from the queue")
-    else:
-        print("Queue is empty")
+def add_to_main_queue(entry):
+    entry['status'] = 'start'
+    redis_client.lpush(queue_name, json.dumps(entry))
+
+def remove_fire_by_id(task_id):
+    queue_items = redis_client.lrange(queue_name, 0, -1)
+    for item in queue_items:
+        item_data = json.loads(item)
+        if item_data.get('task_id') == task_id:
+            redis_client.lrem(queue_name, 0, item)  # Remove the item
+            logging.info(f"Main({item_data})")
+            break
+
+
+def update_fire_by_id(task_id, updated_data):
+    queue_items = redis_client.lrange(queue_name, 0, -1)
+    for item in queue_items:
+        item_data = json.loads(item)
+        if item_data.get('task_id') == task_id:
+            redis_client.lrem(queue_name, 0, item) 
+            item_data.update(updated_data) 
+            redis_client.lpush(queue_name, json.dumps(item_data))
+            break
+
+
+def get_queue():
+    return [json.loads(item) for item in redis_client.lrange(queue_name, 0, -1)]
 

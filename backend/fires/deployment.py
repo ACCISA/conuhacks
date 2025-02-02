@@ -9,6 +9,7 @@ import sys
 sys.path.append("database")
 
 from resources import pull_resources, update_resource
+from event import remove_fire_by_id
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -64,6 +65,8 @@ class RedisDeploymentQueue:
         we want to log and free the used resources
         """
         logging.info(f"Deployment(task_id={item['entry']['task_id']}, deployment completed)")
+
+        remove_fire_by_id(item['entry']['task_id'])
 
         resources = item['resources'][1]
 
