@@ -22,7 +22,7 @@ const polygonOptions = {
   strokeWeight: 2,
 };
 
-const MapWithMultipleFires = ({ onFireClick, onClose, fireInfo }) => {
+const MapWithMultipleFires = ({ fireInfo, onFireSelected }) => {
   const [fires, setFires] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [activeInfoWindow, setActiveInfoWindow] = useState(null);
@@ -33,15 +33,12 @@ const MapWithMultipleFires = ({ onFireClick, onClose, fireInfo }) => {
 
   // ---------------------------------------------------------
   // Build polygons whenever fireInfo changes
-  // and create new "alerts" for each fire
   // ---------------------------------------------------------
   useEffect(() => {
-    // Build new polygons from the updated fireInfo
     const newFires = fireInfo.map((info, idx) => {
-      // location = "lat,lng"
       const [lat, lng] = info.location.split(",").map(Number);
 
-      // Create a small box around the location (adjust offset if desired)
+      // Create a small box polygon
       const offset = 0.01;
       const coordinates = [
         { lat: lat + offset, lng: lng + offset },
@@ -51,37 +48,34 @@ const MapWithMultipleFires = ({ onFireClick, onClose, fireInfo }) => {
       ];
 
       return {
-        id: `${info.fire_start_time}-${idx}`, // unique
-        fire_start_time: info.fire_start_time,
-        severity: info.severity,
+        ...info,
+        id: `${info.fire_start_time}-${idx}`,
+        lat,
+        lng,
         coordinates,
       };
     });
 
     setFires(newFires);
 
-    // Create alerts for each new fire
-    // If you only wanted "brand new" fires, you'd compare with old state
-    const newAlerts = newFires.map((fire, idx) => ({
+    // Create top-right alerts
+    const newAlerts = newFires.map((fire, index) => ({
       id: fire.id,
-      text: `New Fire #${idx + 1} - Severity: ${fire.severity}`,
+      text: `New Fire #${index + 1} - Severity: ${fire.severity}`,
       visible: true,
     }));
-
     setAlerts(newAlerts);
   }, [fireInfo]);
 
   // ---------------------------------------------------------
-  // Fade out each alert individually after 5 seconds
+  // Fade out each alert individually after 5s
   // ---------------------------------------------------------
   useEffect(() => {
     const timers = alerts.map((alert) => {
       if (alert.visible) {
         return setTimeout(() => {
           setAlerts((prev) =>
-            prev.map((a) =>
-              a.id === alert.id ? { ...a, visible: false } : a
-            )
+            prev.map((a) => (a.id === alert.id ? { ...a, visible: false } : a))
           );
         }, 5000);
       }
@@ -89,14 +83,12 @@ const MapWithMultipleFires = ({ onFireClick, onClose, fireInfo }) => {
     });
 
     return () => {
-      timers.forEach((timer) => {
-        if (timer) clearTimeout(timer);
-      });
+      timers.forEach((t) => t && clearTimeout(t));
     };
   }, [alerts]);
 
   // ---------------------------------------------------------
-  // Randomly move polygons every 1s + increment simulated date
+  // Randomly move polygons + advance date (optional)
   // ---------------------------------------------------------
   useEffect(() => {
     const timer = setInterval(() => {
@@ -109,15 +101,14 @@ const MapWithMultipleFires = ({ onFireClick, onClose, fireInfo }) => {
           })),
         }))
       );
-      // Advance date by 3 days each second
-      setSimulatedDate((prevDate) => new Date(prevDate.getTime() + 3 * 24 * 60 * 60 * 1000));
+      setSimulatedDate((prev) => new Date(prev.getTime() + 1 * 24 * 60 * 60 * 1000));
     }, 1000);
 
     return () => clearInterval(timer);
   }, []);
 
   // ---------------------------------------------------------
-  // Helper: centroid of a polygon
+  // Helper: compute centroid
   // ---------------------------------------------------------
   const calculateCentroid = (polygon) => {
     const lat = polygon.reduce((sum, p) => sum + p.lat, 0) / polygon.length;
@@ -126,25 +117,25 @@ const MapWithMultipleFires = ({ onFireClick, onClose, fireInfo }) => {
   };
 
   // ---------------------------------------------------------
-  // On polygon click => show overlay, filter resources
+  // Clicking a polygon or alert => show overlay, notify parent
   // ---------------------------------------------------------
-  const handleAlertClick = (fireIndex) => {
-    setActiveInfoWindow(fireIndex);
-    onFireClick(fires[fireIndex].severity);
+  const handleFireClick = (index) => {
+    setActiveInfoWindow(index);
+    onFireSelected(fires[index]); // pass entire object to Dashboard
 
     // Center the map on this polygon’s centroid
-    const centroid = calculateCentroid(fires[fireIndex].coordinates);
+    const centroid = calculateCentroid(fires[index].coordinates);
     if (map) {
       map.panTo(centroid);
     }
   };
 
   // ---------------------------------------------------------
-  // Close overlay
+  // Overlay close => clear info window, reset selection
   // ---------------------------------------------------------
   const handleCloseOverlay = () => {
     setActiveInfoWindow(null);
-    onClose();
+    onFireSelected(null);
   };
 
   // ---------------------------------------------------------
@@ -152,11 +143,8 @@ const MapWithMultipleFires = ({ onFireClick, onClose, fireInfo }) => {
   // ---------------------------------------------------------
   const handleMapLoad = (mapInstance) => {
     setMap(mapInstance);
-
-    // If we have saved center/zoom, apply them
     const savedCenter = localStorage.getItem("mapCenter");
     const savedZoom = localStorage.getItem("mapZoom");
-
     if (savedCenter && savedZoom) {
       const { lat, lng } = JSON.parse(savedCenter);
       mapInstance.setCenter({ lat, lng });
@@ -166,21 +154,16 @@ const MapWithMultipleFires = ({ onFireClick, onClose, fireInfo }) => {
 
   const handleCenterChanged = () => {
     if (map) {
-      const center = map.getCenter();
-      if (center) {
-        const position = {
-          lat: center.lat(),
-          lng: center.lng(),
-        };
-        localStorage.setItem("mapCenter", JSON.stringify(position));
+      const c = map.getCenter();
+      if (c) {
+        localStorage.setItem("mapCenter", JSON.stringify({ lat: c.lat(), lng: c.lng() }));
       }
     }
   };
 
   const handleZoomChanged = () => {
     if (map) {
-      const newZoom = map.getZoom();
-      localStorage.setItem("mapZoom", newZoom);
+      localStorage.setItem("mapZoom", map.getZoom());
     }
   };
 
@@ -204,7 +187,7 @@ const MapWithMultipleFires = ({ onFireClick, onClose, fireInfo }) => {
               <Polygon
                 paths={fire.coordinates}
                 options={polygonOptions}
-                onClick={() => handleAlertClick(index)}
+                onClick={() => handleFireClick(index)}
               />
               {activeInfoWindow === index && (
                 <FireDetailsOverlay
@@ -218,14 +201,8 @@ const MapWithMultipleFires = ({ onFireClick, onClose, fireInfo }) => {
         </GoogleMap>
       </LoadScript>
 
-      {/* Top-right alerts (fade individually after 5s) */}
-      <div
-        style={{
-          position: "absolute",
-          top: "1rem",
-          right: "1rem",
-        }}
-      >
+      {/* Top-right alerts: fade out after 5s individually */}
+      <div style={{ position: "absolute", top: "1rem", right: "1rem" }}>
         {alerts.map((alert, idx) =>
           alert.visible ? (
             <div
@@ -237,10 +214,8 @@ const MapWithMultipleFires = ({ onFireClick, onClose, fireInfo }) => {
                 padding: "0.5rem 1rem",
                 borderRadius: "4px",
                 cursor: "pointer",
-                opacity: alert.visible ? 1 : 0,
-                transition: "opacity 0.5s",
               }}
-              onClick={() => handleAlertClick(idx)}
+              onClick={() => handleFireClick(idx)}
             >
               {alert.text}
             </div>
