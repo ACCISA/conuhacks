@@ -6,7 +6,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-100">
       <Header />
-      <div className="p-1">
+      <div className="">
         <Dashboard />
       </div>
     </div>
