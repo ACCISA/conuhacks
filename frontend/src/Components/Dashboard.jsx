@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import MapWithMultipleFires from './Map';
+import PieChart from './PieChart';
+import LineGraph from './LineGraph';
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -44,25 +46,32 @@ const Dashboard = () => {
       </div>
 
       {activeTab === 'dashboard' && (
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="lg:w-1/4 bg-gray-800 p-4 rounded-xl shadow-xl overflow-y-auto max-h-[600px]">
-            <h2 className="text-xl font-semibold mb-2">Fire Department Resources</h2>
-            <div className="space-y-4">
-              {filteredResources.map((resource, index) => (
-                <div key={index} className="bg-gray-700 p-3 rounded-md shadow-md">
-                  <h3 className={`text-lg font-semibold mb-1 ${getSeverityColor(resource.severity)}`}>{resource.name}</h3>
-                  <p className="text-sm">Total: {resource.total}</p>
-                  <p className="text-sm">In Use: {resource.inUse}</p>
-                  <p className="text-sm">Cost: ${resource.cost}</p>
-                  <p className={`text-sm ${getSeverityColor(resource.severity)}`}>Severity: {resource.severity}</p>
-                </div>
-              ))}
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col lg:flex-row gap-4">
+            <div className="lg:w-1/4 bg-gray-800 p-4 rounded-xl shadow-xl max-h-[665px] h-[665px] overflow-y-auto">
+              <h2 className="text-xl font-semibold mb-2">Fire Department Resources</h2>
+              <div className="space-y-4">
+                {filteredResources.map((resource, index) => (
+                  <div key={index} className="bg-gray-700 p-3 rounded-md shadow-md">
+                    <h3 className={`text-lg font-semibold mb-1 ${getSeverityColor(resource.severity)}`}>{resource.name}</h3>
+                    <p className="text-sm">Total: {resource.total}</p>
+                    <p className="text-sm">In Use: {resource.inUse}</p>
+                    <p className="text-sm">Cost: ${resource.cost}</p>
+                    <p className={`text-sm ${getSeverityColor(resource.severity)}`}>Severity: {resource.severity}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="lg:w-3/4 bg-gray-800 p-4 rounded-xl shadow-xl">
+              <h2 className="text-xl font-semibold mb-2">Fire Incident Map</h2>
+              <MapWithMultipleFires onFireClick={handleFireClick} onClose={handleClose} />
             </div>
           </div>
 
-          <div className="lg:w-3/4 bg-gray-800 p-4 rounded-xl shadow-xl">
-            <h2 className="text-xl font-semibold mb-2">Fire Incident Map</h2>
-            <MapWithMultipleFires onFireClick={handleFireClick} onClose={handleClose} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <PieChart />
+            <LineGraph />
           </div>
         </div>
       )}
