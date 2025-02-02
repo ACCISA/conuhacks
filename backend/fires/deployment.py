@@ -18,7 +18,8 @@ class RedisDeploymentQueue:
         self.redis_client = redis.StrictRedis(host=redis_host, port=redis_port, db=0)
         self.redis_client.delete(queue_name)
         self.queue_name = queue_name
-        self.resources = pull_resources
+        self.deployed = 0
+        self.cur_fires = []
     
     def deploy(self,entry,resources, ttl):
         """
@@ -27,7 +28,10 @@ class RedisDeploymentQueue:
         """
         item_data = {'entry': entry,'resources': resources, 'ttl': time.time()+ttl}
         self.redis_client.zadd(self.queue_name, {json.dumps(item_data): item_data['ttl']})
-        logging.info(f"Deployment(task_id={entry['task_id']},ttl={ttl},deployed)")
+        self.deployed += 1
+        self.cur_fires.append(entry['task_id'])
+        entry['deployment_cost'] = self.calculate_cost(resources[1])
+        logging.info(f"Deployment(task_id={entry['task_id']},ttl={ttl},cost={entry['deployment_cost']},deployed)")
     
     def process_queue(self):
         """
@@ -39,10 +43,16 @@ class RedisDeploymentQueue:
             if items:
                 for item in items:
                     entry = json.loads(item)
-                    print(entry)
                     self.redis_client.zrem(self.queue_name, item)
                     self.handle_completed_deployment(entry)
     
+    def calculate_cost(self,resources):
+        total_cost = 0
+        for resource in resources:
+            for type in resource.keys():
+                total_cost += int(pull_resources()['resources'][type]['cost_per_operation']['$numberInt'])
+        return total_cost
+
     def free_resource(self, type):
         units = int(pull_resources()['resources'][type]['units_available'])
         update_resource(type, 'units_available', str(units+1))
@@ -60,3 +70,6 @@ class RedisDeploymentQueue:
         for resource in resources:
             for unit in resource.keys():
                 self.free_resource(unit)
+        
+        self.deployed -= 1
+        self.cur_fires.remove(item['entry']['task_id'])

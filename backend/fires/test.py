@@ -13,7 +13,7 @@ sys.path.append("database")
 from allocator import Allocator
 from deployment import RedisDeploymentQueue
 from resources import reset_resources, pull_resources
-
+from fires import log_failed_response
 # Set up Redis connection
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
 queue_key = "priority_queue2"
@@ -35,15 +35,15 @@ def short_uuid():
     return str(full_uuid).replace('-', '')[:8]
 
 
-def log_failed_deployment(entry):
-    pass
 
 def task_handler(task_data):
     task = json.loads(task_data)
     allocator.severity = task['priority']
     resource_usage, ttl = allocator.allocate_task(task)
     if resource_usage is None or ttl is None:
-        log_failed_deployment(task)
+        task_data['num_fires'] = deployment.deployed
+        task_data['cur_fires'] = deployment.cur_fires
+        log_failed_response(task_data)
         return
 
     deployment.deploy(task,resource_usage,ttl)
